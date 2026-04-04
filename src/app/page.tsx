@@ -216,10 +216,9 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* 历史排班表 */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Left Column - 历史排班表 */}
+          <div className="lg:col-span-1 space-y-6">
             {schedules.length > 0 && activeTab !== 'export' && (
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">
@@ -263,7 +262,10 @@ export default function Home() {
                 </div>
               </div>
             )}
+          </div>
 
+          {/* Middle Column - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
             {activeTab === 'persons' && (
               <PersonManager
                 persons={persons}
@@ -287,7 +289,7 @@ export default function Home() {
           </div>
 
           {/* Right Column - Quick Stats */}
-          <div className="space-y-6">
+          <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">统计信息</h3>
               <div className="space-y-4">
