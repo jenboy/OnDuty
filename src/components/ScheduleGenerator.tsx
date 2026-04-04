@@ -109,6 +109,25 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
 
     setErrors([]);
 
+    // 生成排班表前确认
+    const rotationStrategyText = {
+      sequential: '正序轮换',
+      reverse: '倒序轮换',
+      random: '随机轮换'
+    }[config.rotationStrategy];
+
+    const confirmMessage = `确认生成排班表：\n\n` +
+      `名称：${scheduleName}\n` +
+      `日期范围：${config.startDate} 至 ${config.endDate}\n` +
+      `参与人员：${activePersons.length} 人\n` +
+      `轮换策略：${rotationStrategyText}\n` +
+      `跳过周末：${config.skipWeekends ? '是' : '否'}\n\n` +
+      `是否开始生成？`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
     // 生成排班
     const engine = new SchedulerEngine(activePersons, config);
     const entries = engine.generateSchedule();
