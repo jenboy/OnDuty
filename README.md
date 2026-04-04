@@ -1,103 +1,158 @@
 # OnDuty - 值日排班系统
 
-OnDuty 是一个功能完善的在线值日排班管理系统，支持多种轮换策略、节假日避让、多格式导出等功能。
+一个功能强大、易于使用的值日排班系统，支持无限人员录入、多种排班策略、日历视图和多格式导出。
 
 ## 功能特性
 
 ### 核心功能
-- **人员管理**：支持无限数量人员录入，包含姓名、部门、联系方式等信息
-- **动态排班引擎**：实现 7×24 小时连续循环排班
-- **多种轮换策略**：正序轮换、倒序轮换、随机轮换
-- **智能避让**：自动跳过周末和节假日
-- **节假日设置**：支持单次、每年重复、每月重复三种类型
+- **人员管理**：支持无限数量人员录入，可设置部门、联系方式和颜色标识
+- **动态排班**：7×24 小时连续循环排班，支持正序、倒序、随机三种轮换策略
+- **智能避让**：支持跳过周末，可为每个人设置不可排班的星期几
+- **排班表名称**：自动填充为「2026年3月值日表」或「2026年3月第3周值日表」格式
+- **日历视图**：月度日历展示，带值班统计功能
+- **多格式导出**：支持 Excel、Word、图片、JSON 格式导出，采用日历排版
+- **用户隔离**：密码登录/注册，不同用户数据完全隔离
 
-### 排班输出
-- **多格式导出**：PDF、Excel、Word、JSON
-- **可视化日历**：月度/周度日历视图
-- **多种模板**：标准、紧凑、详细三种模板
-- **自定义样式**：字体大小、主题颜色可调
+### 技术特点
+- **现代化 UI**：基于 Tailwind CSS 的响应式设计
+- **本地存储**：数据保存在浏览器 localStorage，无需后端服务器
+- **静态部署**：可部署到 Cloudflare Pages、Vercel 等静态托管服务
+- **TypeScript**：完整的类型支持，代码更安全
+- **Next.js**：基于 React 的现代前端框架
 
-### 数据管理
-- **本地存储**：数据保存在浏览器本地
-- **版本回滚**：支持最近 5 次修改撤销
-- **数据备份**：支持导出/导入 JSON 备份
-- **历史记录**：保存所有排班表历史
+## 快速开始
+
+### 本地运行
+
+1. **克隆项目**
+   ```bash
+   git clone <repository-url>
+   cd OnDuty
+   ```
+
+2. **安装依赖**
+   ```bash
+   npm install
+   ```
+
+3. **启动开发服务器**
+   ```bash
+   npm run dev
+   ```
+
+4. **访问应用**
+   打开浏览器访问 `http://localhost:3000`
+
+### 部署
+
+#### 1. Vercel (推荐)
+```bash
+cd OnDuty
+npx vercel
+```
+
+#### 2. Cloudflare Pages
+```bash
+cd OnDuty
+npm run build
+npx wrangler pages deploy dist
+```
+
+#### 3. 其他静态托管
+```bash
+cd OnDuty
+npm run build
+# 部署 dist 目录到任意静态托管服务
+```
+
+## 使用指南
+
+### 1. 登录/注册
+- 首次访问时，输入密码自动注册
+- 后续访问使用相同密码登录
+- 不同密码对应不同的数据隔离区
+
+### 2. 人员管理
+- 点击「人员管理」标签
+- 点击「添加人员」按钮
+- 填写人员信息：姓名、部门、联系方式、颜色标识
+- 可设置「不可排班日期」（勾选星期几）
+- 支持拖拽排序
+
+### 3. 排班设置
+- 点击「排班设置」标签
+- 选择开始日期和结束日期
+- 选择轮换策略（正序/倒序/随机）
+- 选择是否跳过周末
+- 自动生成排班表名称（可手动修改）
+- 点击「生成排班表」按钮
+
+### 4. 日历视图
+- 点击「日历视图」标签
+- 查看月度值班安排
+- 点击「统计」按钮查看月度值班统计
+- 点击「导出」按钮导出排班表
+
+### 5. 导出功能
+- 支持 Excel、Word、图片、JSON 格式
+- Excel 和 Word 采用日历排版
+- 图片导出为当前日历视图的 PNG
+
+## 项目结构
+
+```
+OnDuty/
+├── src/
+│   ├── app/              # Next.js 应用
+│   │   ├── page.tsx      # 主页面
+│   │   ├── layout.tsx    # 布局
+│   │   └── globals.css   # 全局样式
+│   ├── components/       # React 组件
+│   │   ├── AuthPage.tsx  # 登录/注册页面
+│   │   ├── PersonManager.tsx    # 人员管理
+│   │   ├── ScheduleGenerator.tsx # 排班生成
+│   │   └── CalendarView.tsx      # 日历视图
+│   ├── hooks/            # React Hooks
+│   │   └── useStorage.ts # 存储 Hook
+│   ├── lib/              # 工具库
+│   │   ├── utils.ts      # 工具函数
+│   │   ├── scheduler.ts  # 排班引擎
+│   │   ├── storage.ts    # 数据存储
+│   │   └── export.ts     # 导出功能
+│   └── types/            # TypeScript 类型
+│       └── index.ts
+├── dist/                 # 构建输出
+├── package.json
+├── next.config.js
+├── tailwind.config.ts
+├── vercel.json           # Vercel 配置
+├── wrangler.toml         # Cloudflare 配置
+└── README.md
+```
 
 ## 技术栈
 
-- **框架**：Next.js 14 + React 18
+- **前端框架**：Next.js 14
+- **UI 框架**：Tailwind CSS v3
 - **语言**：TypeScript
-- **样式**：Tailwind CSS
-- **图标**：Lucide React
-- **导出**：jsPDF、SheetJS (XLSX)
+- **状态管理**：React useState + localStorage
+- **导出库**：
+  - Excel: xlsx
+  - Word: 原生 HTML
+  - 图片: html2canvas
+  - PDF: jspdf
 
-## 部署方式
+## 浏览器支持
 
-### 部署到 Vercel
-
-1. 将代码推送到 GitHub
-2. 在 Vercel 导入项目
-3. 自动部署完成
-
-或者使用 Vercel CLI：
-```bash
-npm i -g vercel
-vercel
-```
-
-### 部署到 Cloudflare Pages
-
-1. 构建项目：
-```bash
-npm run build
-```
-
-2. 使用 Wrangler 部署：
-```bash
-npm i -g wrangler
-wrangler pages deploy dist
-```
-
-### 静态部署
-
-构建后的静态文件位于 `dist` 目录，可以部署到任何静态托管服务：
-
-```bash
-npm run build
-# 部署 dist 目录到服务器
-```
-
-## 本地开发
-
-```bash
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-
-# 构建生产版本
-npm run build
-
-# 代码检查
-npm run lint
-```
-
-## 使用说明
-
-1. **添加人员**：在"人员管理"页面添加值班人员
-2. **设置节假日**：在"节假日"页面设置需要跳过的日期
-3. **生成排班**：在"排班设置"页面配置参数并生成排班表
-4. **查看日历**：在"日历视图"页面查看可视化排班
-5. **导出文件**：在"导出"页面选择格式导出排班表
-
-## 浏览器兼容性
-
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
+- Chrome (推荐)
+- Firefox
+- Safari
+- Edge
 
 ## 许可证
 
 MIT License
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
