@@ -22,7 +22,7 @@ interface MonthlyStats {
 
 export function CalendarView({ schedule, persons }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [showStats, setShowStats] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     format: 'excel',
@@ -168,13 +168,8 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
         </h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowStats(!showStats)}
-            className={cn(
-              'flex items-center gap-1 px-3 py-1 text-sm rounded-lg transition-colors',
-              showStats
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            )}
+            onClick={() => setShowStatsModal(true)}
+            className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
           >
             <BarChart3 className="w-4 h-4" />
             统计
@@ -216,52 +211,6 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
         </div>
       ) : (
         <>
-          {showStats && monthlyStats.length > 0 && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-                <h3 className="font-bold text-gray-800">
-                  {year}年{getMonthName(month)}值班统计
-                </h3>
-              </div>
-              <div className="space-y-3">
-                {monthlyStats.map((stat) => (
-                  <div key={stat.personId} className="flex items-center gap-3">
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: stat.color }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700 truncate">
-                          {stat.personName}
-                        </span>
-                        <span className="text-sm font-bold text-blue-600 ml-2">
-                          {stat.count} 次
-                        </span>
-                      </div>
-                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${maxCount > 0 ? (stat.count / maxCount) * 100 : 0}%`,
-                            backgroundColor: stat.color,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-3 border-t border-blue-200 flex items-center justify-between text-sm">
-                <span className="text-gray-600">本月总值班次数</span>
-                <span className="font-bold text-blue-700">
-                  {monthlyStats.reduce((sum, s) => sum + s.count, 0)} 次
-                </span>
-              </div>
-            </div>
-          )}
-
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['日', '一', '二', '三', '四', '五', '六'].map((day) => (
               <div
@@ -367,6 +316,65 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
         </>
       )}
 
+      {/* Stats Modal */}
+      {showStatsModal && monthlyStats.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                {year}年{getMonthName(month)}值班统计
+              </h3>
+              <button
+                onClick={() => setShowStatsModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-4">
+                {monthlyStats.map((stat) => (
+                  <div key={stat.personId} className="flex items-center gap-3">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: stat.color }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-700 truncate">
+                          {stat.personName}
+                        </span>
+                        <span className="text-sm font-bold text-blue-600 ml-2">
+                          {stat.count} 次
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${maxCount > 0 ? (stat.count / maxCount) * 100 : 0}%`,
+                            backgroundColor: stat.color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 pt-4 border-t flex items-center justify-between">
+                <span className="text-gray-600">本月总值班次数</span>
+                <span className="font-bold text-blue-700 text-lg">
+                  {monthlyStats.reduce((sum, s) => sum + s.count, 0)} 次
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
       {showExportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">

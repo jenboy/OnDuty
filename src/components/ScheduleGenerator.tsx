@@ -47,8 +47,8 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
     endDate: formatDate(new Date(new Date().setMonth(new Date().getMonth() + 1))),
     rotationStrategy: 'sequential',
     dutyType: 'daily',
-    skipWeekends: true,
-    skipHolidays: true,
+    skipWeekends: false,
+    skipHolidays: false,
   });
   const [scheduleName, setScheduleName] = useState('');
   const [nameFormat, setNameFormat] = useState<'monthly' | 'weekly'>('monthly');
