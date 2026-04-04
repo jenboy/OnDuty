@@ -1,13 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Person, ScheduleConfig, Schedule, RotationStrategy } from '@/types';
 import { SchedulerEngine, generateId, formatDate } from '@/lib';
-import { Calendar, Settings, Play, AlertCircle } from 'lucide-react';
+import { Calendar, Settings, Play, AlertCircle, Wand2 } from 'lucide-react';
 
 interface ScheduleGeneratorProps {
   persons: Person[];
   onGenerate: (schedule: Schedule) => void;
+}
+
+const MONTHS = [
+  '一月', '二月', '三月', '四月', '五月', '六月',
+  '七月', '八月', '九月', '十月', '十一月', '十二月'
+];
+
+function getWeekOfMonth(date: Date): number {
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+  const firstWeekday = firstDay.getDay();
+  const dayOfMonth = date.getDate();
+  return Math.ceil((dayOfMonth + firstWeekday) / 7);
+}
+
+function generateScheduleName(
+  startDate: string,
+  endDate: string,
+  type: 'monthly' | 'weekly'
+): string {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const year = start.getFullYear();
+  const month = start.getMonth() + 1;
+  const monthName = MONTHS[month - 1];
+
+  if (type === 'weekly') {
+    const weekNum = getWeekOfMonth(start);
+    return `${year}年${monthName}第${weekNum}周值日表`;
+  }
+
+  return `${year}年${monthName}值日表`;
 }
 
 export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProps) {
@@ -20,9 +51,23 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
     skipHolidays: true,
   });
   const [scheduleName, setScheduleName] = useState('');
+  const [nameFormat, setNameFormat] = useState<'monthly' | 'weekly'>('monthly');
   const [errors, setErrors] = useState<string[]>([]);
 
   const activePersons = persons.filter((p) => p.isActive);
+
+  // 自动生成排班表名称
+  const autoGenerateName = () => {
+    const newName = generateScheduleName(config.startDate, config.endDate, nameFormat);
+    setScheduleName(newName);
+  };
+
+  // 当日期或格式变化时，自动更新名称
+  useEffect(() => {
+    const suggestedName = generateScheduleName(config.startDate, config.endDate, nameFormat);
+    setScheduleName(suggestedName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.startDate, config.endDate, nameFormat]);
 
   const handleGenerate = () => {
     const newErrors: string[] = [];
@@ -92,13 +137,24 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
           <label className="block text-sm font-medium text-gray-700 mb-1">
             排班表名称 *
           </label>
-          <input
-            type="text"
-            value={scheduleName}
-            onChange={(e) => setScheduleName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="例如：2024年3月值班表"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={scheduleName}
+              onChange={(e) => setScheduleName(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="输入排班表名称"
+            />
+            <button
+              type="button"
+              onClick={autoGenerateName}
+              className="flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+              title="自动生成名称"
+            >
+              <Wand2 className="w-4 h-4" />
+              <span className="hidden sm:inline">自动填充</span>
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -127,6 +183,44 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            名称格式
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setNameFormat('monthly');
+                setScheduleName(generateScheduleName(config.startDate, config.endDate, 'monthly'));
+              }}
+              className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
+                nameFormat === 'monthly'
+                  ? 'bg-blue-100 border-blue-300 text-blue-700'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              <div className="font-medium">月度格式</div>
+              <div className="text-xs mt-1 opacity-75">2026年3月值日表</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setNameFormat('weekly');
+                setScheduleName(generateScheduleName(config.startDate, config.endDate, 'weekly'));
+              }}
+              className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
+                nameFormat === 'weekly'
+                  ? 'bg-blue-100 border-blue-300 text-blue-700'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              <div className="font-medium">周度格式</div>
+              <div className="text-xs mt-1 opacity-75">2026年3月第3周值日表</div>
+            </button>
           </div>
         </div>
 
