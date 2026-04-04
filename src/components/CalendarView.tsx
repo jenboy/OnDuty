@@ -24,6 +24,13 @@ interface MonthlyStats {
 
 export function CalendarView({ schedules, currentSchedule, persons, initialDate }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(initialDate || new Date());
+  
+  // 当 initialDate 变化时更新当前日期
+  useEffect(() => {
+    if (initialDate) {
+      setCurrentDate(initialDate);
+    }
+  }, [initialDate]);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
