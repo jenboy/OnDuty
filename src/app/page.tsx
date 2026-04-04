@@ -156,6 +156,11 @@ export default function Home() {
               >
                 <Database className="w-5 h-5" />
               </button>
+              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium">
+                  {storage.getCurrentUserId()?.substring(0, 1).toUpperCase() || 'U'}
+                </span>
+              </div>
               <button
                 onClick={handleLogout}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
@@ -214,31 +219,6 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
-            {activeTab === 'persons' && (
-              <PersonManager
-                persons={persons}
-                onAdd={addPerson}
-                onUpdate={updatePerson}
-                onDelete={deletePerson}
-                onReorder={reorderPersons}
-              />
-            )}
-
-            {activeTab === 'schedule' && (
-              <ScheduleGenerator
-                persons={persons}
-                onGenerate={handleGenerateSchedule}
-              />
-            )}
-
-            {activeTab === 'calendar' && (
-              <CalendarView schedule={currentSchedule} persons={persons} />
-            )}
-
-
-
-
-
             {/* 历史排班表 */}
             {schedules.length > 0 && activeTab !== 'export' && (
               <div className="bg-white rounded-lg shadow-md p-6">
@@ -282,6 +262,27 @@ export default function Home() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {activeTab === 'persons' && (
+              <PersonManager
+                persons={persons}
+                onAdd={addPerson}
+                onUpdate={updatePerson}
+                onDelete={deletePerson}
+                onReorder={reorderPersons}
+              />
+            )}
+
+            {activeTab === 'schedule' && (
+              <ScheduleGenerator
+                persons={persons}
+                onGenerate={handleGenerateSchedule}
+              />
+            )}
+
+            {activeTab === 'calendar' && (
+              <CalendarView schedules={schedules} persons={persons} />
             )}
           </div>
 
@@ -378,8 +379,14 @@ export default function Home() {
 
       {/* Data Management Modal */}
       {showDataModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowDataModal(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">数据管理</h3>
               <button

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Schedule, ScheduleEntry, Person, ExportOptions } from '@/types';
 import { ChevronLeft, ChevronRight, Calendar, BarChart3, TrendingUp, Download, FileText, FileSpreadsheet, FileType, FileCode, Settings, X } from 'lucide-react';
 import { getMonthName, getDaysInMonth } from '@/lib/utils';
@@ -9,7 +9,7 @@ import { ExportManager } from '@/lib/export';
 import html2canvas from 'html2canvas';
 
 interface CalendarViewProps {
-  schedule: Schedule | null;
+  schedules: Schedule[];
   persons: Person[];
 }
 
@@ -20,7 +20,7 @@ interface MonthlyStats {
   color: string;
 }
 
-export function CalendarView({ schedule, persons }: CalendarViewProps) {
+export function CalendarView({ schedules, persons }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -32,7 +32,15 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
     fontSize: 12,
     primaryColor: '#3b82f6',
   });
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(schedules[0] || null);
   const calendarRef = useRef<HTMLDivElement>(null);
+
+  // 当schedules变化时，更新selectedSchedule
+  useEffect(() => {
+    if (schedules.length > 0 && (!selectedSchedule || !schedules.some(s => s.id === selectedSchedule.id))) {
+      setSelectedSchedule(schedules[0]);
+    }
+  }, [schedules, selectedSchedule]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -41,23 +49,23 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
   const firstDayOfMonth = new Date(year, month, 1).getDay();
 
   const monthEntries = useMemo(() => {
-    if (!schedule) return new Map<string, ScheduleEntry>();
+    if (!selectedSchedule) return new Map<string, ScheduleEntry>();
 
     const entries = new Map<string, ScheduleEntry>();
-    schedule.entries.forEach((entry) => {
+    selectedSchedule.entries.forEach((entry) => {
       const entryDate = new Date(entry.date);
       if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
         entries.set(entry.date, entry);
       }
     });
     return entries;
-  }, [schedule, year, month]);
+  }, [selectedSchedule, year, month]);
 
   const monthlyStats = useMemo((): MonthlyStats[] => {
-    if (!schedule) return [];
+    if (!selectedSchedule) return [];
 
     const statsMap = new Map<string, number>();
-    schedule.entries.forEach((entry) => {
+    selectedSchedule.entries.forEach((entry) => {
       const entryDate = new Date(entry.date);
       if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
         statsMap.set(entry.personId, (statsMap.get(entry.personId) || 0) + 1);
@@ -78,7 +86,7 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
     });
 
     return stats.sort((a, b) => b.count - a.count);
-  }, [schedule, year, month, persons]);
+  }, [selectedSchedule, year, month, persons]);
 
   const personColors = useMemo(() => {
     const colors = new Map<string, string>();
@@ -101,9 +109,9 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
   };
 
   const handleExport = () => {
-    if (!schedule) return;
+    if (!selectedSchedule) return;
 
-    const exporter = new ExportManager(schedule, persons);
+    const exporter = new ExportManager(selectedSchedule, persons);
 
     switch (exportOptions.format) {
       case 'pdf':
@@ -120,8 +128,6 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
     setShowExportModal(false);
   };
 
-
-
   const handleExportImage = async () => {
     if (!calendarRef.current) return;
     
@@ -133,7 +139,7 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
       });
       
       const link = document.createElement('a');
-      link.download = `${schedule?.name || 'calendar'}.png`;
+      link.download = `${selectedSchedule?.name || 'calendar'}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (error) {
@@ -175,6 +181,22 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
             <Download className="w-4 h-4" />
             导出
           </button>
+          <select
+            value={selectedSchedule?.id || ''}
+            onChange={(e) => {
+              const schedule = schedules.find(s => s.id === e.target.value);
+              if (schedule) {
+                setSelectedSchedule(schedule);
+              }
+            }}
+            className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            {schedules.map((schedule) => (
+              <option key={schedule.id} value={schedule.id}>
+                {schedule.name}
+              </option>
+            ))}
+          </select>
           <button
             onClick={prevMonth}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -199,7 +221,7 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
         </div>
       </div>
 
-      {!schedule ? (
+      {!selectedSchedule ? (
         <div className="text-center py-12 text-gray-500">
           请先生成排班表
         </div>
@@ -291,7 +313,7 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
               <span className="text-sm text-gray-600">周末</span>
             </div>
             {persons
-              .filter((p) => schedule.personIds.includes(p.id))
+              .filter((p) => selectedSchedule.personIds.includes(p.id))
               .map((person) => (
                 <div key={person.id} className="flex items-center gap-2">
                   <div
@@ -307,8 +329,14 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
 
       {/* Stats Modal */}
       {showStatsModal && monthlyStats.length > 0 && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowStatsModal(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-blue-600" />
@@ -365,8 +393,14 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
 
       {/* Export Modal */}
       {showExportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowExportModal(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                 <Download className="w-5 h-5 text-blue-600" />
