@@ -145,7 +145,90 @@ function getLunarMonthDays(year: number, lunarMonth: number): number {
   return ((info >> bitPosition) & 0x00000001) ? 30 : 29;
 }
 
+// 24节气名称
+const solarTerms = [
+  '小寒', '大寒', '立春', '雨水', '惊蛰', '春分',
+  '清明', '谷雨', '立夏', '小满', '芒种', '夏至',
+  '小暑', '大暑', '立秋', '处暑', '白露', '秋分',
+  '寒露', '霜降', '立冬', '小雪', '大雪', '冬至'
+];
+
+// 计算24节气日期
+function calc24SolarTerms(year: number): number[] {
+  const terms = new Array(24).fill(0);
+  const Y = year % 100;
+  const D = 0.2422;
+  const C_20xx = [
+    3.87, 18.73, 5.63, 20.646, 4.81, 20.1,
+    5.52, 21.04, 5.678, 21.37, 7.108, 22.83,
+    7.5, 23.13, 7.646, 23.042, 8.318, 23.438,
+    7.438, 22.36, 7.18, 21.94, 5.4055, 20.12
+  ];
+
+  if (year < 2001 || year > 2099) {
+    return terms;
+  }
+
+  for (let i = 0; i < 24; i++) {
+    if (i <= 1 || i >= 22) {
+      terms[i] = Math.floor(Y * D + C_20xx[i]) - Math.floor((Y - 1) / 4);
+    } else {
+      terms[i] = Math.floor(Y * D + C_20xx[i]) - Math.floor(Y / 4);
+    }
+
+    // 例外情况
+    if (year === 2026 && i === 1) terms[i]--; // 雨水
+    if (year === 2084 && i === 3) terms[i]++; // 春分
+    if (year === 1911 && i === 6) terms[i]++; // 立夏
+    if (year === 2008 && i === 7) terms[i]++; // 小满
+    if (year === 1902 && i === 8) terms[i]++; // 芒种
+    if (year === 1928 && i === 9) terms[i]++; // 夏至
+    if ((year === 1925 || year === 2016) && i === 10) terms[i]++; // 小暑
+    if (year === 1922 && i === 11) terms[i]++; // 大暑
+    if (year === 2002 && i === 12) terms[i]++; // 立秋
+    if (year === 1927 && i === 14) terms[i]++; // 白露
+    if (year === 1942 && i === 15) terms[i]++; // 秋分
+    if (year === 2089 && i === 17) terms[i]++; // 寒露
+    if (year === 2089 && i === 18) terms[i]++; // 霜降
+    if (year === 1978 && i === 19) terms[i]++; // 立冬
+    if (year === 1954 && i === 20) terms[i]++; // 小雪
+    if ((year === 1918 || year === 2021) && i === 21) terms[i]--; // 大雪
+    if (year === 1982 && i === 22) terms[i]++; // 小寒
+    if (year === 2019 && i === 22) terms[i]--; // 小寒
+    if (year === 2082 && i === 23) terms[i]++; // 大寒
+  }
+
+  return terms;
+}
+
+// 检查日期是否为节气
+function checkSolarTerm(date: Date): string | null {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  
+  const terms = calc24SolarTerms(year);
+  
+  // 节气月份分布：0-1月(0-1), 2月(2-3), 3月(4-5), 4月(6-7), 5月(8-9), 6月(10-11),
+  // 7月(12-13), 8月(14-15), 9月(16-17), 10月(18-19), 11月(20-21), 12月(22-23)
+  const termIndex = month * 2 + (day > terms[month * 2 + 1] ? 1 : 0);
+  
+  if (termIndex >= 0 && termIndex < 24) {
+    if (day === terms[termIndex]) {
+      return solarTerms[termIndex];
+    }
+  }
+  
+  return null;
+}
+
 export function getLunarDate(date: Date): string {
+  // 检查是否为节气
+  const solarTerm = checkSolarTerm(date);
+  if (solarTerm) {
+    return solarTerm;
+  }
+  
   const solar1900 = new Date(1900, 0, 31); // 1900/1/31为正月初一
   
   const interval = calcSolarDateInterval(solar1900, date) + 1;
