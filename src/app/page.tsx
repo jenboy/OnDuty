@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStorage } from '@/hooks/useStorage';
 import { PersonManager } from '@/components/PersonManager';
 import { ScheduleGenerator } from '@/components/ScheduleGenerator';
 import { CalendarView } from '@/components/CalendarView';
 import { ExportPanel } from '@/components/ExportPanel';
 import { HolidayManager } from '@/components/HolidayManager';
+import { AuthPage } from '@/components/AuthPage';
 import { Schedule, Person } from '@/types';
+import { storage } from '@/lib/storage';
 import {
   Users,
   Calendar,
@@ -18,6 +20,7 @@ import {
   Trash2,
   RotateCcw,
   Database,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +30,23 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('persons');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showDataModal, setShowDataModal] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 检查认证状态
+  useEffect(() => {
+    setIsAuthenticated(storage.isAuthenticated());
+    setIsLoading(false);
+  }, []);
+
+  const handleAuthSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    storage.logout();
+    setIsAuthenticated(false);
+  };
 
   const {
     persons,
@@ -82,6 +102,18 @@ export default function Home() {
     { id: 'holidays' as TabType, label: '节假日', icon: Calendar },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-gray-600">加载中...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+  }
+
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -132,6 +164,13 @@ export default function Home() {
                 <Database className="w-5 h-5" />
               </button>
               <button
+                onClick={handleLogout}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                title="退出登录"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+              <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
               >
@@ -166,6 +205,13 @@ export default function Home() {
                 {tab.label}
               </button>
             ))}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              退出登录
+            </button>
           </nav>
         )}
       </header>
@@ -231,9 +277,9 @@ export default function Home() {
                           {schedule.name}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {schedule.config.startDate} 至{' '}
-                          {schedule.config.endDate} · {schedule.entries.length}{' '}
-                          天
+                          {schedule.config.startDate} 至{
+                            schedule.config.endDate
+                          } · {schedule.entries.length} 天
                         </div>
                       </div>
                       <button
@@ -342,6 +388,13 @@ export default function Home() {
                 >
                   <Calendar className="w-4 h-4" />
                   设置节假日
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-4"
+                >
+                  <LogOut className="w-4 h-4" />
+                  退出登录
                 </button>
               </div>
             </div>

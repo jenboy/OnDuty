@@ -1,7 +1,8 @@
-import { AppState, Person, Holiday, Schedule, VersionHistory } from '@/types';
+import { AppState, Person, Holiday, Schedule, VersionHistory, User, UserData } from '@/types';
 import { generateId } from './utils';
 
 const STORAGE_KEY = 'onduty-data';
+const AUTH_KEY = 'onduty-auth';
 const MAX_VERSIONS = 5;
 
 const defaultState: AppState = {
@@ -12,12 +13,19 @@ const defaultState: AppState = {
   versionHistory: [],
 };
 
+const defaultUserData: UserData = {
+  users: [],
+  dataByUser: {},
+};
+
 export class StorageManager {
   private static instance: StorageManager;
-  private state: AppState;
+  private userData: UserData;
+  private currentUserId: string | null;
 
   private constructor() {
-    this.state = this.loadFromStorage();
+    this.userData = this.loadFromStorage();
+    this.currentUserId = this.loadAuth();
   }
 
   static getInstance(): StorageManager {
@@ -27,160 +35,288 @@ export class StorageManager {
     return StorageManager.instance;
   }
 
-  private loadFromStorage(): AppState {
-    if (typeof window === 'undefined') return defaultState;
+  private loadFromStorage(): UserData {
+    if (typeof window === 'undefined') return defaultUserData;
     
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       if (data) {
-        return { ...defaultState, ...JSON.parse(data) };
+        const parsed = JSON.parse(data);
+        return {
+          users: parsed.users || [],
+          dataByUser: parsed.dataByUser || {},
+        };
       }
     } catch (error) {
       console.error('Failed to load data from storage:', error);
     }
-    return defaultState;
+    return defaultUserData;
   }
 
   private saveToStorage(): void {
     if (typeof window === 'undefined') return;
     
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.userData));
     } catch (error) {
       console.error('Failed to save data to storage:', error);
     }
   }
 
-  // 人员管理
-  getPersons(): Person[] {
-    return this.state.persons;
+  private loadAuth(): string | null {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const auth = localStorage.getItem(AUTH_KEY);
+      if (auth) {
+        return JSON.parse(auth);
+      }
+    } catch (error) {
+      console.error('Failed to load auth:', error);
+    }
+    return null;
   }
 
-  addPerson(person: Omit<Person, 'id' | 'order'>): Person {
-    const newPerson: Person = {
-      ...person,
+  private saveAuth(userId: string): void {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      localStorage.setItem(AUTH_KEY, JSON.stringify(userId));
+    } catch (error) {
+      console.error('Failed to save auth:', error);
+    }
+  }
+
+  private clearAuth(): void {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      localStorage.removeItem(AUTH_KEY);
+    } catch (error) {
+      console.error('Failed to clear auth:', error);
+    }
+  }
+
+  private getCurrentUserState(): AppState {
+    if (!this.currentUserId) return defaultState;
+    return this.userData.dataByUser[this.currentUserId] || defaultState;
+  }
+
+  private setCurrentUserState(state: AppState): void {
+    if (!this.currentUserId) return;
+    this.userData.dataByUser[this.currentUserId] = state;
+    this.saveToStorage();
+  }
+
+  // 用户管理
+  login(password: string): boolean {
+    const user = this.userData.users.find(u => u.password === password);
+    if (user) {
+      this.currentUserId = user.id;
+      user.lastLogin = new Date().toISOString();
+      this.saveAuth(user.id);
+      this.saveToStorage();
+      return true;
+    }
+    return false;
+  }
+
+  register(password: string): boolean {
+    if (this.userData.users.some(u => u.password === password)) {
+      return false; // 密码已存在
+    }
+
+    const newUser: User = {
       id: generateId(),
-      order: this.state.persons.length,
+      password,
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
     };
-    this.state.persons.push(newPerson);
-    this.saveToStorage();
-    return newPerson;
-  }
 
-  updatePerson(id: string, updates: Partial<Person>): Person | null {
-    const index = this.state.persons.findIndex(p => p.id === id);
-    if (index === -1) return null;
-
-    this.state.persons[index] = { ...this.state.persons[index], ...updates };
-    this.saveToStorage();
-    return this.state.persons[index];
-  }
-
-  deletePerson(id: string): boolean {
-    const index = this.state.persons.findIndex(p => p.id === id);
-    if (index === -1) return false;
-
-    this.state.persons.splice(index, 1);
-    // 重新排序
-    this.state.persons.forEach((p, i) => { p.order = i; });
+    this.userData.users.push(newUser);
+    this.userData.dataByUser[newUser.id] = { ...defaultState };
+    this.currentUserId = newUser.id;
+    this.saveAuth(newUser.id);
     this.saveToStorage();
     return true;
   }
 
+  logout(): void {
+    this.currentUserId = null;
+    this.clearAuth();
+  }
+
+  getCurrentUserId(): string | null {
+    return this.currentUserId;
+  }
+
+  isAuthenticated(): boolean {
+    return this.currentUserId !== null;
+  }
+
+  // 人员管理
+  getPersons(): Person[] {
+    return this.getCurrentUserState().persons;
+  }
+
+  addPerson(person: Omit<Person, 'id' | 'order'>): Person {
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
+    const newPerson: Person = {
+      ...person,
+      id: generateId(),
+      order: state.persons.length,
+    };
+    state.persons.push(newPerson);
+    this.setCurrentUserState(state);
+    return newPerson;
+  }
+
+  updatePerson(id: string, updates: Partial<Person>): Person | null {
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
+    const index = state.persons.findIndex(p => p.id === id);
+    if (index === -1) return null;
+
+    state.persons[index] = { ...state.persons[index], ...updates };
+    this.setCurrentUserState(state);
+    return state.persons[index];
+  }
+
+  deletePerson(id: string): boolean {
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
+    const index = state.persons.findIndex(p => p.id === id);
+    if (index === -1) return false;
+
+    state.persons.splice(index, 1);
+    // 重新排序
+    state.persons.forEach((p, i) => { p.order = i; });
+    this.setCurrentUserState(state);
+    return true;
+  }
+
   reorderPersons(orderedIds: string[]): void {
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
     const orderedPersons: Person[] = [];
     orderedIds.forEach((id, index) => {
-      const person = this.state.persons.find(p => p.id === id);
+      const person = state.persons.find(p => p.id === id);
       if (person) {
         person.order = index;
         orderedPersons.push(person);
       }
     });
-    this.state.persons = orderedPersons;
-    this.saveToStorage();
+    state.persons = orderedPersons;
+    this.setCurrentUserState(state);
   }
 
   // 节假日管理
   getHolidays(): Holiday[] {
-    return this.state.holidays;
+    return this.getCurrentUserState().holidays;
   }
 
   addHoliday(holiday: Omit<Holiday, 'id'>): Holiday {
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
     const newHoliday: Holiday = {
       ...holiday,
       id: generateId(),
     };
-    this.state.holidays.push(newHoliday);
-    this.saveToStorage();
+    state.holidays.push(newHoliday);
+    this.setCurrentUserState(state);
     return newHoliday;
   }
 
   updateHoliday(id: string, updates: Partial<Holiday>): Holiday | null {
-    const index = this.state.holidays.findIndex(h => h.id === id);
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
+    const index = state.holidays.findIndex(h => h.id === id);
     if (index === -1) return null;
 
-    this.state.holidays[index] = { ...this.state.holidays[index], ...updates };
-    this.saveToStorage();
-    return this.state.holidays[index];
+    state.holidays[index] = { ...state.holidays[index], ...updates };
+    this.setCurrentUserState(state);
+    return state.holidays[index];
   }
 
   deleteHoliday(id: string): boolean {
-    const index = this.state.holidays.findIndex(h => h.id === id);
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
+    const index = state.holidays.findIndex(h => h.id === id);
     if (index === -1) return false;
 
-    this.state.holidays.splice(index, 1);
-    this.saveToStorage();
+    state.holidays.splice(index, 1);
+    this.setCurrentUserState(state);
     return true;
   }
 
   // 排班管理
   getSchedules(): Schedule[] {
-    return this.state.schedules;
+    return this.getCurrentUserState().schedules;
   }
 
   getSchedule(id: string): Schedule | null {
-    return this.state.schedules.find(s => s.id === id) || null;
+    return this.getCurrentUserState().schedules.find(s => s.id === id) || null;
   }
 
   saveSchedule(schedule: Schedule): Schedule {
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
     // 保存版本历史
     this.saveVersion(schedule);
 
-    const index = this.state.schedules.findIndex(s => s.id === schedule.id);
+    const index = state.schedules.findIndex(s => s.id === schedule.id);
     if (index === -1) {
-      this.state.schedules.push(schedule);
+      state.schedules.push(schedule);
     } else {
-      this.state.schedules[index] = schedule;
+      state.schedules[index] = schedule;
     }
-    this.state.currentSchedule = schedule;
-    this.saveToStorage();
+    state.currentSchedule = schedule;
+    this.setCurrentUserState(state);
     return schedule;
   }
 
   deleteSchedule(id: string): boolean {
-    const index = this.state.schedules.findIndex(s => s.id === id);
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
+    const index = state.schedules.findIndex(s => s.id === id);
     if (index === -1) return false;
 
-    this.state.schedules.splice(index, 1);
-    if (this.state.currentSchedule?.id === id) {
-      this.state.currentSchedule = null;
+    state.schedules.splice(index, 1);
+    if (state.currentSchedule?.id === id) {
+      state.currentSchedule = null;
     }
-    this.saveToStorage();
+    this.setCurrentUserState(state);
     return true;
   }
 
   setCurrentSchedule(schedule: Schedule | null): void {
-    this.state.currentSchedule = schedule;
-    this.saveToStorage();
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
+    state.currentSchedule = schedule;
+    this.setCurrentUserState(state);
   }
 
   getCurrentSchedule(): Schedule | null {
-    return this.state.currentSchedule;
+    return this.getCurrentUserState().currentSchedule;
   }
 
   // 版本管理
   private saveVersion(schedule: Schedule): void {
-    const existingIndex = this.state.versionHistory.findIndex(
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
+    const existingIndex = state.versionHistory.findIndex(
       v => v.scheduleId === schedule.id
     );
 
@@ -193,40 +329,44 @@ export class StorageManager {
     };
 
     // 只保留最近5个版本
-    const relatedVersions = this.state.versionHistory.filter(
+    const relatedVersions = state.versionHistory.filter(
       v => v.scheduleId === schedule.id
     );
     if (relatedVersions.length >= MAX_VERSIONS) {
       const oldestVersion = relatedVersions[relatedVersions.length - 1];
-      const oldestIndex = this.state.versionHistory.findIndex(
+      const oldestIndex = state.versionHistory.findIndex(
         v => v.id === oldestVersion.id
       );
       if (oldestIndex !== -1) {
-        this.state.versionHistory.splice(oldestIndex, 1);
+        state.versionHistory.splice(oldestIndex, 1);
       }
     }
 
-    this.state.versionHistory.unshift(version);
+    state.versionHistory.unshift(version);
+    this.setCurrentUserState(state);
   }
 
   getVersionHistory(scheduleId: string): VersionHistory[] {
-    return this.state.versionHistory
+    return this.getCurrentUserState().versionHistory
       .filter(v => v.scheduleId === scheduleId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
   rollbackToVersion(versionId: string): Schedule | null {
-    const version = this.state.versionHistory.find(v => v.id === versionId);
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
+    const state = this.getCurrentUserState();
+    const version = state.versionHistory.find(v => v.id === versionId);
     if (!version) return null;
 
     const schedule = JSON.parse(JSON.stringify(version.data));
     schedule.updatedAt = new Date().toISOString();
 
-    const index = this.state.schedules.findIndex(s => s.id === schedule.id);
+    const index = state.schedules.findIndex(s => s.id === schedule.id);
     if (index !== -1) {
-      this.state.schedules[index] = schedule;
-      this.state.currentSchedule = schedule;
-      this.saveToStorage();
+      state.schedules[index] = schedule;
+      state.currentSchedule = schedule;
+      this.setCurrentUserState(state);
     }
 
     return schedule;
@@ -234,14 +374,17 @@ export class StorageManager {
 
   // 数据导出导入
   exportData(): string {
-    return JSON.stringify(this.state, null, 2);
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    return JSON.stringify(this.getCurrentUserState(), null, 2);
   }
 
   importData(jsonData: string): boolean {
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    
     try {
       const data = JSON.parse(jsonData);
-      this.state = { ...defaultState, ...data };
-      this.saveToStorage();
+      const state = { ...defaultState, ...data };
+      this.setCurrentUserState(state);
       return true;
     } catch (error) {
       console.error('Failed to import data:', error);
@@ -251,13 +394,14 @@ export class StorageManager {
 
   // 清空数据
   clearAll(): void {
-    this.state = { ...defaultState };
+    if (!this.currentUserId) throw new Error('Not authenticated');
+    this.userData.dataByUser[this.currentUserId] = { ...defaultState };
     this.saveToStorage();
   }
 
   // 获取完整状态
   getState(): AppState {
-    return { ...this.state };
+    return this.getCurrentUserState();
   }
 }
 

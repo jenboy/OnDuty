@@ -73,3 +73,15 @@ export interface AppState {
   currentSchedule: Schedule | null;
   versionHistory: VersionHistory[];
 }
+
+export interface User {
+  id: string;
+  password: string;
+  createdAt: string;
+  lastLogin: string;
+}
+
+export interface UserData {
+  users: User[];
+  dataByUser: Record<string, AppState>;
+}
