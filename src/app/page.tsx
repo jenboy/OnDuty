@@ -5,7 +5,6 @@ import { useStorage } from '@/hooks/useStorage';
 import { PersonManager } from '@/components/PersonManager';
 import { ScheduleGenerator } from '@/components/ScheduleGenerator';
 import { CalendarView } from '@/components/CalendarView';
-import { ExportPanel } from '@/components/ExportPanel';
 import { HolidayManager } from '@/components/HolidayManager';
 import { AuthPage } from '@/components/AuthPage';
 import { Schedule, Person } from '@/types';
@@ -98,7 +97,6 @@ export default function Home() {
     { id: 'persons' as TabType, label: '人员管理', icon: Users },
     { id: 'schedule' as TabType, label: '排班设置', icon: Settings },
     { id: 'calendar' as TabType, label: '日历视图', icon: Calendar },
-    { id: 'export' as TabType, label: '导出', icon: Download },
     { id: 'holidays' as TabType, label: '节假日', icon: Calendar },
   ];
 
@@ -242,9 +240,7 @@ export default function Home() {
               <CalendarView schedule={currentSchedule} persons={persons} />
             )}
 
-            {activeTab === 'export' && (
-              <ExportPanel schedule={currentSchedule} persons={persons} />
-            )}
+
 
             {activeTab === 'holidays' && (
               <HolidayManager
