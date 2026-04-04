@@ -33,17 +33,7 @@ export function CalendarView({ schedules, currentSchedule, persons }: CalendarVi
     fontSize: 12,
     primaryColor: '#3b82f6',
   });
-  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(currentSchedule || schedules[0] || null);
   const calendarRef = useRef<HTMLDivElement>(null);
-
-  // 当currentSchedule或schedules变化时，更新selectedSchedule
-  useEffect(() => {
-    if (currentSchedule) {
-      setSelectedSchedule(currentSchedule);
-    } else if (schedules.length > 0 && (!selectedSchedule || !schedules.some(s => s.id === selectedSchedule.id))) {
-      setSelectedSchedule(schedules[0]);
-    }
-  }, [currentSchedule, schedules, selectedSchedule]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -52,27 +42,27 @@ export function CalendarView({ schedules, currentSchedule, persons }: CalendarVi
   const firstDayOfMonth = new Date(year, month, 1).getDay();
 
   const monthEntries = useMemo(() => {
-    if (!selectedSchedule) return new Map<string, ScheduleEntry>();
-
     const entries = new Map<string, ScheduleEntry>();
-    selectedSchedule.entries.forEach((entry) => {
-      const entryDate = new Date(entry.date);
-      if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
-        entries.set(entry.date, entry);
-      }
+    schedules.forEach((schedule) => {
+      schedule.entries.forEach((entry) => {
+        const entryDate = new Date(entry.date);
+        if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
+          entries.set(entry.date, entry);
+        }
+      });
     });
     return entries;
-  }, [selectedSchedule, year, month]);
+  }, [schedules, year, month]);
 
   const monthlyStats = useMemo((): MonthlyStats[] => {
-    if (!selectedSchedule) return [];
-
     const statsMap = new Map<string, number>();
-    selectedSchedule.entries.forEach((entry) => {
-      const entryDate = new Date(entry.date);
-      if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
-        statsMap.set(entry.personId, (statsMap.get(entry.personId) || 0) + 1);
-      }
+    schedules.forEach((schedule) => {
+      schedule.entries.forEach((entry) => {
+        const entryDate = new Date(entry.date);
+        if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
+          statsMap.set(entry.personId, (statsMap.get(entry.personId) || 0) + 1);
+        }
+      });
     });
 
     const stats: MonthlyStats[] = [];
@@ -89,7 +79,7 @@ export function CalendarView({ schedules, currentSchedule, persons }: CalendarVi
     });
 
     return stats.sort((a, b) => b.count - a.count);
-  }, [selectedSchedule, year, month, persons]);
+  }, [schedules, year, month, persons]);
 
   const personColors = useMemo(() => {
     const colors = new Map<string, string>();
@@ -112,9 +102,10 @@ export function CalendarView({ schedules, currentSchedule, persons }: CalendarVi
   };
 
   const handleExport = () => {
-    if (!selectedSchedule) return;
+    if (schedules.length === 0) return;
 
-    const exporter = new ExportManager(selectedSchedule, persons);
+    // 使用第一个排班表作为导出基础
+    const exporter = new ExportManager(schedules[0], persons);
 
     switch (exportOptions.format) {
       case 'pdf':
@@ -142,7 +133,7 @@ export function CalendarView({ schedules, currentSchedule, persons }: CalendarVi
       });
       
       const link = document.createElement('a');
-      link.download = `${selectedSchedule?.name || 'calendar'}.png`;
+      link.download = `calendar.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (error) {
@@ -184,22 +175,6 @@ export function CalendarView({ schedules, currentSchedule, persons }: CalendarVi
             <Download className="w-4 h-4" />
             导出
           </button>
-          <select
-            value={selectedSchedule?.id || ''}
-            onChange={(e) => {
-              const schedule = schedules.find(s => s.id === e.target.value);
-              if (schedule) {
-                setSelectedSchedule(schedule);
-              }
-            }}
-            className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {schedules.map((schedule) => (
-              <option key={schedule.id} value={schedule.id}>
-                {schedule.name}
-              </option>
-            ))}
-          </select>
           <button
             onClick={prevMonth}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -224,7 +199,7 @@ export function CalendarView({ schedules, currentSchedule, persons }: CalendarVi
         </div>
       </div>
 
-      {!selectedSchedule ? (
+      {schedules.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           请先生成排班表
         </div>
@@ -315,17 +290,15 @@ export function CalendarView({ schedules, currentSchedule, persons }: CalendarVi
               <div className="w-3 h-3 rounded-full bg-gray-200" />
               <span className="text-sm text-gray-600">周末</span>
             </div>
-            {persons
-              .filter((p) => selectedSchedule.personIds.includes(p.id))
-              .map((person) => (
-                <div key={person.id} className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: person.color || '#3b82f6' }}
-                  />
-                  <span className="text-sm text-gray-600">{person.name}</span>
-                </div>
-              ))}
+            {persons.map((person) => (
+              <div key={person.id} className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: person.color || '#3b82f6' }}
+                />
+                <span className="text-sm text-gray-600">{person.name}</span>
+              </div>
+            ))}
           </div>
         </>
       )}
