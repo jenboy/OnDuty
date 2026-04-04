@@ -40,13 +40,12 @@ export class ExportManager {
       entry.date,
       getWeekDayName(new Date(entry.date).getDay()),
       entry.personName,
-      entry.isHoliday ? entry.holidayName || '节假日' : '',
     ]);
 
     // 生成表格
     (doc as any).autoTable({
       startY: options.includeHeader ? 40 : 20,
-      head: [['日期', '星期', '值班人员', '备注']],
+      head: [['日期', '星期', '值班人员']],
       body: tableData,
       theme: options.template === 'compact' ? 'plain' : 'grid',
       headStyles: {
@@ -291,21 +290,7 @@ export class ExportManager {
     saveAs(blob, `${this.schedule.name}.doc`);
   }
 
-  // 导出为 JSON
-  exportToJSON(): void {
-    const data = {
-      schedule: this.schedule,
-      persons: this.persons.filter(p =>
-        this.schedule.personIds.includes(p.id)
-      ),
-      exportTime: new Date().toISOString(),
-    };
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: 'application/json',
-    });
-    saveAs(blob, `${this.schedule.name}.json`);
-  }
 
   // 生成月度统计
   generateMonthlyStats(): { month: string; personStats: { name: string; count: number }[] }[] {

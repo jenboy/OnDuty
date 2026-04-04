@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { storage } from '@/lib/storage';
-import { Person, Holiday, Schedule, AppState } from '@/types';
+import { Person, Schedule, AppState } from '@/types';
 
 export function useStorage() {
   const [state, setState] = useState<AppState>({
     persons: [],
-    holidays: [],
     schedules: [],
     currentSchedule: null,
     versionHistory: [],
@@ -44,24 +43,7 @@ export function useStorage() {
     setState(storage.getState());
   }, []);
 
-  // 节假日管理
-  const addHoliday = useCallback((holiday: Omit<Holiday, 'id'>) => {
-    const newHoliday = storage.addHoliday(holiday);
-    setState(storage.getState());
-    return newHoliday;
-  }, []);
 
-  const updateHoliday = useCallback((id: string, updates: Partial<Holiday>) => {
-    const updated = storage.updateHoliday(id, updates);
-    setState(storage.getState());
-    return updated;
-  }, []);
-
-  const deleteHoliday = useCallback((id: string) => {
-    const result = storage.deleteHoliday(id);
-    setState(storage.getState());
-    return result;
-  }, []);
 
   // 排班管理
   const saveSchedule = useCallback((schedule: Schedule) => {
@@ -111,9 +93,6 @@ export function useStorage() {
     updatePerson,
     deletePerson,
     reorderPersons,
-    addHoliday,
-    updateHoliday,
-    deleteHoliday,
     saveSchedule,
     deleteSchedule,
     setCurrentSchedule,

@@ -95,7 +95,7 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
     setErrors([]);
 
     // 生成排班
-    const engine = new SchedulerEngine(activePersons, [], config);
+    const engine = new SchedulerEngine(activePersons, config);
     const entries = engine.generateSchedule();
 
     const schedule: Schedule = {
@@ -255,18 +255,6 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
               className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
             />
             <span className="text-sm text-gray-700">跳过周末</span>
-          </label>
-
-          <label className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-            <input
-              type="checkbox"
-              checked={config.skipHolidays}
-              onChange={(e) =>
-                setConfig({ ...config, skipHolidays: e.target.checked })
-              }
-              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">跳过节假日</span>
           </label>
         </div>
 

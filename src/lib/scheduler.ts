@@ -2,23 +2,19 @@ import {
   Person,
   ScheduleConfig,
   ScheduleEntry,
-  Holiday,
   RotationStrategy,
 } from '@/types';
 import { formatDate, isWeekend, generateId, shuffleArray } from './utils';
 
 export class SchedulerEngine {
   private persons: Person[];
-  private holidays: Holiday[];
   private config: ScheduleConfig;
 
   constructor(
     persons: Person[],
-    holidays: Holiday[],
     config: ScheduleConfig
   ) {
     this.persons = persons.filter(p => p.isActive).sort((a, b) => a.order - b.order);
-    this.holidays = holidays;
     this.config = config;
   }
 
@@ -40,13 +36,10 @@ export class SchedulerEngine {
       const dateStr = formatDate(currentDate);
       const dayOfWeek = currentDate.getDay();
       const isWeekendDay = isWeekend(currentDate);
-      const holiday = this.getHoliday(currentDate);
-      const isHoliday = !!holiday;
 
       // 判断是否跳过
       const shouldSkip = 
-        (this.config.skipWeekends && isWeekendDay) ||
-        (this.config.skipHolidays && isHoliday && !holiday?.isWorkday);
+        (this.config.skipWeekends && isWeekendDay);
 
       if (!shouldSkip) {
         // 筛选出当天可用的人员（排除掉 excludedDays 包含当天星期几的人员）
@@ -61,8 +54,6 @@ export class SchedulerEngine {
             date: dateStr,
             personId: person.id,
             personName: person.name,
-            isHoliday,
-            holidayName: holiday?.name,
             isWeekend: isWeekendDay,
           });
           personIndex++;
@@ -73,8 +64,6 @@ export class SchedulerEngine {
             date: dateStr,
             personId: 'none',
             personName: '无可用人员',
-            isHoliday,
-            holidayName: holiday?.name,
             isWeekend: isWeekendDay,
           });
         }
@@ -99,26 +88,7 @@ export class SchedulerEngine {
     }
   }
 
-  private getHoliday(date: Date): Holiday | undefined {
-    const dateStr = formatDate(date);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
 
-    return this.holidays.find(h => {
-      if (h.type === 'once') {
-        return h.date === dateStr;
-      }
-      if (h.type === 'yearly') {
-        const hDate = new Date(h.date);
-        return hDate.getMonth() + 1 === month && hDate.getDate() === day;
-      }
-      if (h.type === 'monthly') {
-        const hDate = new Date(h.date);
-        return hDate.getDate() === day;
-      }
-      return false;
-    });
-  }
 
   // 预测下月排班
   predictNextMonth(): ScheduleEntry[] {
@@ -132,7 +102,7 @@ export class SchedulerEngine {
       endDate: formatDate(nextMonthEnd),
     };
 
-    const nextScheduler = new SchedulerEngine(this.persons, this.holidays, nextConfig);
+    const nextScheduler = new SchedulerEngine(this.persons, nextConfig);
     return nextScheduler.generateSchedule();
   }
 
@@ -151,12 +121,9 @@ export class SchedulerEngine {
 
     for (const skippedDate of skippedDates) {
       const isWeekendDay = isWeekend(currentDate);
-      const holiday = this.getHoliday(currentDate);
-      const isHoliday = !!holiday;
 
       const shouldSkip = 
-        (this.config.skipWeekends && isWeekendDay) ||
-        (this.config.skipHolidays && isHoliday && !holiday?.isWorkday);
+        (this.config.skipWeekends && isWeekendDay);
 
       if (!shouldSkip) {
         const person = activePersons[personIndex % activePersons.length];
@@ -164,8 +131,6 @@ export class SchedulerEngine {
           date: formatDate(currentDate),
           personId: person.id,
           personName: person.name,
-          isHoliday,
-          holidayName: holiday?.name,
           isWeekend: isWeekendDay,
         });
         personIndex++;

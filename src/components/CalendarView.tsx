@@ -120,13 +120,7 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
     setShowExportModal(false);
   };
 
-  const handleExportJSON = () => {
-    if (schedule) {
-      const exporter = new ExportManager(schedule, persons);
-      exporter.exportToJSON();
-    }
-    setShowExportModal(false);
-  };
+
 
   const handleExportImage = async () => {
     if (!calendarRef.current) return;
@@ -281,11 +275,6 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
                         </div>
                       </div>
                     )}
-                    {entry?.isHoliday && (
-                      <div className="text-xs text-red-500 text-center mt-1 truncate">
-                        {entry.holidayName}
-                      </div>
-                    )}
                   </div>
                 </div>
               );
@@ -398,23 +387,21 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   <button
-                    onClick={() => setExportOptions({ ...exportOptions, format: 'excel' })}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
-                      exportOptions.format === 'excel'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-blue-300 text-gray-600'
-                    }`}
+                    onClick={() => {
+                      setExportOptions({ ...exportOptions, format: 'excel' });
+                      handleExport();
+                    }}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 text-gray-600 transition-all"
                   >
                     <FileSpreadsheet className="w-8 h-8" />
                     <span className="text-sm font-medium">Excel</span>
                   </button>
                   <button
-                    onClick={() => setExportOptions({ ...exportOptions, format: 'word' })}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
-                      exportOptions.format === 'word'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-blue-300 text-gray-600'
-                    }`}
+                    onClick={() => {
+                      setExportOptions({ ...exportOptions, format: 'word' });
+                      handleExport();
+                    }}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 text-gray-600 transition-all"
                   >
                     <FileType className="w-8 h-8" />
                     <span className="text-sm font-medium">Word</span>
@@ -431,63 +418,7 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
                 </div>
               </div>
 
-              {exportOptions.format !== 'image' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      主题颜色
-                    </label>
-                    <div className="flex gap-3">
-                      {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'].map(
-                        (color) => (
-                          <button
-                            key={color}
-                            onClick={() => setExportOptions({ ...exportOptions, primaryColor: color })}
-                            className={`w-10 h-10 rounded-full border-2 transition-all ${
-                              exportOptions.primaryColor === color
-                                ? 'border-gray-800 scale-110'
-                                : 'border-transparent hover:scale-105'
-                            }`}
-                            style={{ backgroundColor: color }}
-                          />
-                        )
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={exportOptions.includeHeader}
-                        onChange={(e) =>
-                          setExportOptions({ ...exportOptions, includeHeader: e.target.checked })
-                        }
-                        className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">包含表头（标题和日期范围）</span>
-                    </label>
-                  </div>
-
-                  <button
-                    onClick={handleExport}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
-                  >
-                    <Download className="w-5 h-5" />
-                    导出 {exportOptions.format.toUpperCase()}
-                  </button>
-                </>
-              )}
-
-              <div className="pt-4 border-t">
-                <button
-                  onClick={handleExportJSON}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  <FileCode className="w-5 h-5" />
-                  导出 JSON 数据
-                </button>
-              </div>
             </div>
           </div>
         </div>

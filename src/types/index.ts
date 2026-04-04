@@ -22,20 +22,12 @@ export interface ScheduleConfig {
   skipHolidays: boolean;
 }
 
-export interface Holiday {
-  id: string;
-  name: string;
-  date: string;
-  type: 'once' | 'yearly' | 'monthly';
-  isWorkday: boolean;
-}
+
 
 export interface ScheduleEntry {
   date: string;
   personId: string;
   personName: string;
-  isHoliday: boolean;
-  holidayName?: string;
   isWeekend: boolean;
 }
 
@@ -70,7 +62,6 @@ export interface ExportOptions {
 
 export interface AppState {
   persons: Person[];
-  holidays: Holiday[];
   schedules: Schedule[];
   currentSchedule: Schedule | null;
   versionHistory: VersionHistory[];

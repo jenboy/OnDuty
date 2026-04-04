@@ -1,4 +1,4 @@
-import { AppState, Person, Holiday, Schedule, VersionHistory, User, UserData } from '@/types';
+import { AppState, Person, Schedule, VersionHistory, User, UserData } from '@/types';
 import { generateId } from './utils';
 
 const STORAGE_KEY = 'onduty-data';
@@ -7,7 +7,6 @@ const MAX_VERSIONS = 5;
 
 const defaultState: AppState = {
   persons: [],
-  holidays: [],
   schedules: [],
   currentSchedule: null,
   versionHistory: [],
@@ -215,47 +214,7 @@ export class StorageManager {
     this.setCurrentUserState(state);
   }
 
-  // 节假日管理
-  getHolidays(): Holiday[] {
-    return this.getCurrentUserState().holidays;
-  }
 
-  addHoliday(holiday: Omit<Holiday, 'id'>): Holiday {
-    if (!this.currentUserId) throw new Error('Not authenticated');
-    
-    const state = this.getCurrentUserState();
-    const newHoliday: Holiday = {
-      ...holiday,
-      id: generateId(),
-    };
-    state.holidays.push(newHoliday);
-    this.setCurrentUserState(state);
-    return newHoliday;
-  }
-
-  updateHoliday(id: string, updates: Partial<Holiday>): Holiday | null {
-    if (!this.currentUserId) throw new Error('Not authenticated');
-    
-    const state = this.getCurrentUserState();
-    const index = state.holidays.findIndex(h => h.id === id);
-    if (index === -1) return null;
-
-    state.holidays[index] = { ...state.holidays[index], ...updates };
-    this.setCurrentUserState(state);
-    return state.holidays[index];
-  }
-
-  deleteHoliday(id: string): boolean {
-    if (!this.currentUserId) throw new Error('Not authenticated');
-    
-    const state = this.getCurrentUserState();
-    const index = state.holidays.findIndex(h => h.id === id);
-    if (index === -1) return false;
-
-    state.holidays.splice(index, 1);
-    this.setCurrentUserState(state);
-    return true;
-  }
 
   // 排班管理
   getSchedules(): Schedule[] {

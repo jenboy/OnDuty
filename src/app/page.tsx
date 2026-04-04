@@ -5,7 +5,6 @@ import { useStorage } from '@/hooks/useStorage';
 import { PersonManager } from '@/components/PersonManager';
 import { ScheduleGenerator } from '@/components/ScheduleGenerator';
 import { CalendarView } from '@/components/CalendarView';
-import { HolidayManager } from '@/components/HolidayManager';
 import { AuthPage } from '@/components/AuthPage';
 import { Schedule, Person } from '@/types';
 import { storage } from '@/lib/storage';
@@ -49,7 +48,6 @@ export default function Home() {
 
   const {
     persons,
-    holidays,
     schedules,
     currentSchedule,
     isLoaded,
@@ -57,8 +55,6 @@ export default function Home() {
     updatePerson,
     deletePerson,
     reorderPersons,
-    addHoliday,
-    deleteHoliday,
     saveSchedule,
     deleteSchedule,
     setCurrentSchedule,
@@ -97,7 +93,6 @@ export default function Home() {
     { id: 'persons' as TabType, label: '人员管理', icon: Users },
     { id: 'schedule' as TabType, label: '排班设置', icon: Settings },
     { id: 'calendar' as TabType, label: '日历视图', icon: Calendar },
-    { id: 'holidays' as TabType, label: '节假日', icon: Calendar },
   ];
 
   if (isLoading) {
@@ -242,13 +237,7 @@ export default function Home() {
 
 
 
-            {activeTab === 'holidays' && (
-              <HolidayManager
-                holidays={holidays}
-                onAdd={addHoliday}
-                onDelete={deleteHoliday}
-              />
-            )}
+
 
             {/* 历史排班表 */}
             {schedules.length > 0 && activeTab !== 'export' && (
@@ -313,12 +302,7 @@ export default function Home() {
                     {persons.filter((p) => p.isActive).length}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">节假日</span>
-                  <span className="text-2xl font-bold text-orange-600">
-                    {holidays.length}
-                  </span>
-                </div>
+
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">排班表</span>
                   <span className="text-2xl font-bold text-purple-600">
@@ -378,13 +362,7 @@ export default function Home() {
                   <Settings className="w-4 h-4" />
                   生成排班
                 </button>
-                <button
-                  onClick={() => setActiveTab('holidays')}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <Calendar className="w-4 h-4" />
-                  设置节假日
-                </button>
+
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2 px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-4"
