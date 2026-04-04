@@ -287,7 +287,7 @@ export default function Home() {
             )}
 
             {activeTab === 'calendar' && (
-              <CalendarView schedules={schedules} persons={persons} />
+              <CalendarView schedules={schedules} currentSchedule={currentSchedule} persons={persons} />
             )}
           </div>
 

@@ -10,6 +10,7 @@ import html2canvas from 'html2canvas';
 
 interface CalendarViewProps {
   schedules: Schedule[];
+  currentSchedule: Schedule | null;
   persons: Person[];
 }
 
@@ -20,7 +21,7 @@ interface MonthlyStats {
   color: string;
 }
 
-export function CalendarView({ schedules, persons }: CalendarViewProps) {
+export function CalendarView({ schedules, currentSchedule, persons }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -32,15 +33,17 @@ export function CalendarView({ schedules, persons }: CalendarViewProps) {
     fontSize: 12,
     primaryColor: '#3b82f6',
   });
-  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(schedules[0] || null);
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(currentSchedule || schedules[0] || null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // 当schedules变化时，更新selectedSchedule
+  // 当currentSchedule或schedules变化时，更新selectedSchedule
   useEffect(() => {
-    if (schedules.length > 0 && (!selectedSchedule || !schedules.some(s => s.id === selectedSchedule.id))) {
+    if (currentSchedule) {
+      setSelectedSchedule(currentSchedule);
+    } else if (schedules.length > 0 && (!selectedSchedule || !schedules.some(s => s.id === selectedSchedule.id))) {
       setSelectedSchedule(schedules[0]);
     }
-  }, [schedules, selectedSchedule]);
+  }, [currentSchedule, schedules, selectedSchedule]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
