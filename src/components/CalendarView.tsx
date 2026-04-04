@@ -24,7 +24,7 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
   const [showStats, setShowStats] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
-    format: 'pdf',
+    format: 'excel',
     template: 'standard',
     includeHeader: true,
     includeFooter: true,
@@ -122,6 +122,57 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
       const exporter = new ExportManager(schedule, persons);
       exporter.exportToJSON();
     }
+  };
+
+  const handleExportImage = () => {
+    if (!calendarRef.current) return;
+    
+    // 这里使用 html2canvas 或其他库来实现图片导出
+    // 由于我们没有安装 html2canvas，这里创建一个简单的实现
+    const calendarElement = calendarRef.current;
+    const calendarContent = calendarElement.innerHTML;
+    
+    // 创建一个临时的 canvas 元素
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // 设置 canvas 大小
+    canvas.width = calendarElement.offsetWidth;
+    canvas.height = calendarElement.offsetHeight;
+    
+    // 填充背景
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 创建一个临时的图片元素
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0);
+      // 将 canvas 转换为图片并下载
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${schedule?.name || 'calendar'}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+    
+    // 将日历内容转换为图片
+    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+        <foreignObject width="100%" height="100%">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif;">
+            ${calendarContent}
+          </div>
+        </foreignObject>
+      </svg>
+    `)}`;
+    img.src = dataUrl;
   };
 
   const calendarDays = [];
@@ -263,17 +314,6 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     <button
-                      onClick={() => setExportOptions({ ...exportOptions, format: 'pdf' })}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
-                        exportOptions.format === 'pdf'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-blue-300'
-                      }`}
-                    >
-                      <FileText className="w-6 h-6" />
-                      <span className="text-sm">PDF</span>
-                    </button>
-                    <button
                       onClick={() => setExportOptions({ ...exportOptions, format: 'excel' })}
                       className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
                         exportOptions.format === 'excel'
@@ -294,6 +334,15 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
                     >
                       <FileType className="w-6 h-6" />
                       <span className="text-sm">Word</span>
+                    </button>
+                    <button
+                      onClick={() => handleExportImage()}
+                      className="flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 hover:border-blue-300 transition-all"
+                    >
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-sm">图片</span>
                     </button>
                   </div>
                 </div>
@@ -365,7 +414,7 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
                     className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <Download className="w-4 h-4" />
-                    导出 {schedule.name}
+                    导出日历排版 ({exportOptions.format.toUpperCase()})
                   </button>
                   <button
                     onClick={handleExportJSON}

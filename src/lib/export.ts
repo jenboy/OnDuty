@@ -80,53 +80,92 @@ export class ExportManager {
     doc.save(`${this.schedule.name}.pdf`);
   }
 
-  // 导出为 Excel
+  // 导出为 Excel (日历排版)
   exportToExcel(options: ExportOptions): void {
     const { entries } = this.schedule;
 
-    // 准备数据
-    const data = entries.map(entry => ({
-      '日期': entry.date,
-      '星期': getWeekDayName(new Date(entry.date).getDay()),
-      '值班人员': entry.personName,
-      '部门': this.getPersonDepartment(entry.personId),
-      '是否节假日': entry.isHoliday ? '是' : '否',
-      '节假日名称': entry.holidayName || '',
-      '是否周末': entry.isWeekend ? '是' : '否',
-    }));
+    // 按月份分组数据
+    const monthlyData = new Map<string, ScheduleEntry[]>();
+    entries.forEach(entry => {
+      const date = new Date(entry.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyData.has(monthKey)) {
+        monthlyData.set(monthKey, []);
+      }
+      monthlyData.get(monthKey)?.push(entry);
+    });
 
     // 创建工作簿
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
 
-    // 设置列宽
-    const colWidths = [
-      { wch: 12 },
-      { wch: 8 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 12 },
-      { wch: 15 },
-      { wch: 10 },
-    ];
-    ws['!cols'] = colWidths;
+    // 为每个月份创建工作表
+    monthlyData.forEach((monthEntries, monthKey) => {
+      const [year, month] = monthKey.split('-');
+      const monthName = getMonthName(parseInt(month) - 1);
+      const sheetName = `${year}年${monthName}`;
 
-    // 添加标题行
-    if (options.includeHeader) {
-      XLSX.utils.sheet_add_aoa(ws, [[this.schedule.name]], { origin: 'A1' });
-      XLSX.utils.sheet_add_aoa(
-        ws,
-        [[`排班周期: ${this.schedule.config.startDate} 至 ${this.schedule.config.endDate}`]],
-        { origin: 'A2' }
-      );
-      // 合并标题单元格
-      ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
-      ];
-    }
+      // 创建日历数据
+      const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1).getDay();
+      
+      // 日历表格数据
+      const calendarData = [];
+      
+      // 星期标题
+      calendarData.push(['日', '一', '二', '三', '四', '五', '六']);
+      
+      // 日历数据
+      let day = 1;
+      for (let i = 0; i < 6; i++) {
+        const week = [];
+        for (let j = 0; j < 7; j++) {
+          if ((i === 0 && j < firstDay) || day > daysInMonth) {
+            week.push('');
+          } else {
+            const dateStr = `${year}-${month}-${String(day).padStart(2, '0')}`;
+            const entry = monthEntries.find(e => e.date === dateStr);
+            if (entry) {
+              week.push(`${day}\n${entry.personName}`);
+            } else {
+              week.push(day.toString());
+            }
+            day++;
+          }
+        }
+        calendarData.push(week);
+        if (day > daysInMonth) break;
+      }
 
-    XLSX.utils.book_append_sheet(wb, ws, '排班表');
+      // 创建工作表
+      const ws = XLSX.utils.aoa_to_sheet([]);
+      
+      // 添加标题
+      if (options.includeHeader) {
+        XLSX.utils.sheet_add_aoa(ws, [[this.schedule.name]], { origin: 'A1' });
+        XLSX.utils.sheet_add_aoa(ws, [[`${year}年${monthName}值班表`]], { origin: 'A2' });
+        // 合并标题单元格
+        ws['!merges'] = [
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+          { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+        ];
+      }
+      
+      // 添加日历数据
+      XLSX.utils.sheet_add_aoa(ws, calendarData, { origin: options.includeHeader ? 'A3' : 'A1' });
+      
+      // 设置列宽和行高
+      const colWidths = Array(7).fill({ wch: 15 });
+      ws['!cols'] = colWidths;
+      
+      // 设置行高
+      const rowHeights = [];
+      for (let i = 0; i < calendarData.length + (options.includeHeader ? 2 : 0); i++) {
+        rowHeights.push({ hpx: 60 });
+      }
+      ws['!rows'] = rowHeights;
+      
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
 
     // 生成文件
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -134,9 +173,20 @@ export class ExportManager {
     saveAs(blob, `${this.schedule.name}.xlsx`);
   }
 
-  // 导出为 Word (HTML格式)
+  // 导出为 Word (日历排版)
   exportToWord(options: ExportOptions): void {
     const { entries } = this.schedule;
+
+    // 按月份分组数据
+    const monthlyData = new Map<string, ScheduleEntry[]>();
+    entries.forEach(entry => {
+      const date = new Date(entry.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyData.has(monthKey)) {
+        monthlyData.set(monthKey, []);
+      }
+      monthlyData.get(monthKey)?.push(entry);
+    });
 
     let html = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' 
@@ -147,11 +197,15 @@ export class ExportManager {
         <title>${this.schedule.name}</title>
         <style>
           body { font-family: "Microsoft YaHei", SimSun, sans-serif; }
-          table { border-collapse: collapse; width: 100%; }
-          th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-          th { background-color: ${options.primaryColor}; color: white; }
-          .title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 10px; }
-          .subtitle { font-size: 12px; text-align: center; margin-bottom: 20px; color: #666; }
+          table { border-collapse: collapse; width: 100%; margin-bottom: 40px; }
+          th, td { border: 1px solid #000; padding: 12px; text-align: center; vertical-align: top; }
+          th { background-color: ${options.primaryColor}; color: white; font-weight: bold; }
+          .title { font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 15px; }
+          .subtitle { font-size: 14px; text-align: center; margin-bottom: 30px; color: #666; }
+          .month-title { font-size: 16px; font-weight: bold; text-align: center; margin: 20px 0 10px 0; }
+          .calendar-cell { height: 80px; }
+          .day-number { font-weight: bold; margin-bottom: 5px; }
+          .duty-person { font-size: 12px; }
         </style>
       </head>
       <body>
@@ -162,44 +216,76 @@ export class ExportManager {
       html += `<div class="subtitle">排班周期: ${this.schedule.config.startDate} 至 ${this.schedule.config.endDate}</div>`;
     }
 
-    html += `
-      <table>
-        <thead>
-          <tr>
-            <th>日期</th>
-            <th>星期</th>
-            <th>值班人员</th>
-            <th>部门</th>
-            <th>备注</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
-    entries.forEach(entry => {
-      const weekDay = getWeekDayName(new Date(entry.date).getDay());
-      const department = this.getPersonDepartment(entry.personId);
-      const remark = entry.isHoliday ? entry.holidayName : '';
-
+    // 为每个月份生成日历
+    monthlyData.forEach((monthEntries, monthKey) => {
+      const [year, month] = monthKey.split('-');
+      const monthName = getMonthName(parseInt(month) - 1);
+      
+      html += `<div class="month-title">${year}年${monthName}</div>`;
+      
+      // 创建日历数据
+      const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1).getDay();
+      
       html += `
-        <tr>
-          <td>${entry.date}</td>
-          <td>${weekDay}</td>
-          <td>${entry.personName}</td>
-          <td>${department}</td>
-          <td>${remark}</td>
-        </tr>
+        <table>
+          <thead>
+            <tr>
+              <th>日</th>
+              <th>一</th>
+              <th>二</th>
+              <th>三</th>
+              <th>四</th>
+              <th>五</th>
+              <th>六</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      // 日历数据
+      let day = 1;
+      for (let i = 0; i < 6; i++) {
+        html += '<tr>';
+        for (let j = 0; j < 7; j++) {
+          if ((i === 0 && j < firstDay) || day > daysInMonth) {
+            html += '<td class="calendar-cell"></td>';
+          } else {
+            const dateStr = `${year}-${month}-${String(day).padStart(2, '0')}`;
+            const entry = monthEntries.find(e => e.date === dateStr);
+            if (entry) {
+              html += `
+                <td class="calendar-cell">
+                  <div class="day-number">${day}</div>
+                  <div class="duty-person">${entry.personName}</div>
+                </td>
+              `;
+            } else {
+              html += `
+                <td class="calendar-cell">
+                  <div class="day-number">${day}</div>
+                </td>
+              `;
+            }
+            day++;
+          }
+        }
+        html += '</tr>';
+        if (day > daysInMonth) break;
+      }
+      
+      html += `
+          </tbody>
+        </table>
       `;
     });
 
     html += `
-        </tbody>
-      </table>
       </body>
       </html>
     `;
 
-    const blob = new Blob(['\ufeff', html], {
+    const blob = new Blob(['﻿', html], {
       type: 'application/msword',
     });
     saveAs(blob, `${this.schedule.name}.doc`);
