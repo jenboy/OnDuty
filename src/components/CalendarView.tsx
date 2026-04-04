@@ -2,16 +2,25 @@
 
 import { useState, useMemo } from 'react';
 import { Schedule, ScheduleEntry, Person } from '@/types';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { getMonthName, getWeekDayName, getDaysInMonth } from '@/lib/utils';
+import { ChevronLeft, ChevronRight, Calendar, BarChart3, TrendingUp } from 'lucide-react';
+import { getMonthName, getDaysInMonth } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface CalendarViewProps {
   schedule: Schedule | null;
   persons: Person[];
 }
 
+interface MonthlyStats {
+  personId: string;
+  personName: string;
+  count: number;
+  color: string;
+}
+
 export function CalendarView({ schedule, persons }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showStats, setShowStats] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -19,7 +28,6 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDayOfMonth = new Date(year, month, 1).getDay();
 
-  // 获取当月排班数据
   const monthEntries = useMemo(() => {
     if (!schedule) return new Map<string, ScheduleEntry>();
 
@@ -33,7 +41,33 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
     return entries;
   }, [schedule, year, month]);
 
-  // 获取人员颜色映射
+  const monthlyStats = useMemo((): MonthlyStats[] => {
+    if (!schedule) return [];
+
+    const statsMap = new Map<string, number>();
+    schedule.entries.forEach((entry) => {
+      const entryDate = new Date(entry.date);
+      if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
+        statsMap.set(entry.personId, (statsMap.get(entry.personId) || 0) + 1);
+      }
+    });
+
+    const stats: MonthlyStats[] = [];
+    statsMap.forEach((count, personId) => {
+      const person = persons.find(p => p.id === personId);
+      if (person) {
+        stats.push({
+          personId,
+          personName: person.name,
+          count,
+          color: person.color || '#3b82f6',
+        });
+      }
+    });
+
+    return stats.sort((a, b) => b.count - a.count);
+  }, [schedule, year, month, persons]);
+
   const personColors = useMemo(() => {
     const colors = new Map<string, string>();
     persons.forEach((p) => {
@@ -54,18 +88,15 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
     setCurrentDate(new Date());
   };
 
-  // 生成日历格子
   const calendarDays = [];
-
-  // 空白天数（上月）
   for (let i = 0; i < firstDayOfMonth; i++) {
     calendarDays.push(null);
   }
-
-  // 当月天数
   for (let day = 1; day <= daysInMonth; day++) {
     calendarDays.push(day);
   }
+
+  const maxCount = monthlyStats.length > 0 ? Math.max(...monthlyStats.map(s => s.count)) : 0;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -75,6 +106,18 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
           日历视图
         </h2>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowStats(!showStats)}
+            className={cn(
+              'flex items-center gap-1 px-3 py-1 text-sm rounded-lg transition-colors',
+              showStats
+                ? 'bg-blue-100 text-blue-700'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            )}
+          >
+            <BarChart3 className="w-4 h-4" />
+            统计
+          </button>
           <button
             onClick={prevMonth}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -105,7 +148,52 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
         </div>
       ) : (
         <>
-          {/* 星期标题 */}
+          {showStats && monthlyStats.length > 0 && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-gray-800">
+                  {year}年{getMonthName(month)}值班统计
+                </h3>
+              </div>
+              <div className="space-y-3">
+                {monthlyStats.map((stat) => (
+                  <div key={stat.personId} className="flex items-center gap-3">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: stat.color }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-700 truncate">
+                          {stat.personName}
+                        </span>
+                        <span className="text-sm font-bold text-blue-600 ml-2">
+                          {stat.count} 次
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${maxCount > 0 ? (stat.count / maxCount) * 100 : 0}%`,
+                            backgroundColor: stat.color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-3 border-t border-blue-200 flex items-center justify-between text-sm">
+                <span className="text-gray-600">本月总值班次数</span>
+                <span className="font-bold text-blue-700">
+                  {monthlyStats.reduce((sum, s) => sum + s.count, 0)} 次
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['日', '一', '二', '三', '四', '五', '六'].map((day) => (
               <div
@@ -117,7 +205,6 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
             ))}
           </div>
 
-          {/* 日历格子 */}
           <div className="grid grid-cols-7 gap-1">
             {calendarDays.map((day, index) => {
               if (day === null) {
@@ -188,7 +275,6 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
             })}
           </div>
 
-          {/* 图例 */}
           <div className="mt-6 flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-blue-500" />
