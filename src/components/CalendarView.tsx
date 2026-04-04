@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Calendar, BarChart3, TrendingUp, Download, F
 import { getMonthName, getDaysInMonth } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { ExportManager } from '@/lib/export';
+import html2canvas from 'html2canvas';
 
 interface CalendarViewProps {
   schedule: Schedule | null;
@@ -22,7 +23,7 @@ interface MonthlyStats {
 export function CalendarView({ schedule, persons }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showStats, setShowStats] = useState(false);
-  const [showExport, setShowExport] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     format: 'excel',
     template: 'standard',
@@ -115,6 +116,8 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
         exporter.exportToWord(exportOptions);
         break;
     }
+    
+    setShowExportModal(false);
   };
 
   const handleExportJSON = () => {
@@ -122,57 +125,28 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
       const exporter = new ExportManager(schedule, persons);
       exporter.exportToJSON();
     }
+    setShowExportModal(false);
   };
 
-  const handleExportImage = () => {
+  const handleExportImage = async () => {
     if (!calendarRef.current) return;
     
-    // 这里使用 html2canvas 或其他库来实现图片导出
-    // 由于我们没有安装 html2canvas，这里创建一个简单的实现
-    const calendarElement = calendarRef.current;
-    const calendarContent = calendarElement.innerHTML;
-    
-    // 创建一个临时的 canvas 元素
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // 设置 canvas 大小
-    canvas.width = calendarElement.offsetWidth;
-    canvas.height = calendarElement.offsetHeight;
-    
-    // 填充背景
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // 创建一个临时的图片元素
-    const img = new Image();
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0);
-      // 将 canvas 转换为图片并下载
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${schedule?.name || 'calendar'}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
+    try {
+      const canvas = await html2canvas(calendarRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
       });
-    };
+      
+      const link = document.createElement('a');
+      link.download = `${schedule?.name || 'calendar'}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('导出图片失败:', error);
+    }
     
-    // 将日历内容转换为图片
-    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
-        <foreignObject width="100%" height="100%">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif;">
-            ${calendarContent}
-          </div>
-        </foreignObject>
-      </svg>
-    `)}`;
-    img.src = dataUrl;
+    setShowExportModal(false);
   };
 
   const calendarDays = [];
@@ -206,13 +180,8 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
             统计
           </button>
           <button
-            onClick={() => setShowExport(!showExport)}
-            className={cn(
-              'flex items-center gap-1 px-3 py-1 text-sm rounded-lg transition-colors',
-              showExport
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            )}
+            onClick={() => setShowExportModal(true)}
+            className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Download className="w-4 h-4" />
             导出
@@ -293,141 +262,6 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
             </div>
           )}
 
-          {showExport && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-gray-600" />
-                  导出设置
-                </h3>
-                <button
-                  onClick={() => setShowExport(false)}
-                  className="p-1 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    导出格式
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      onClick={() => setExportOptions({ ...exportOptions, format: 'excel' })}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
-                        exportOptions.format === 'excel'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-blue-300'
-                      }`}
-                    >
-                      <FileSpreadsheet className="w-6 h-6" />
-                      <span className="text-sm">Excel</span>
-                    </button>
-                    <button
-                      onClick={() => setExportOptions({ ...exportOptions, format: 'word' })}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
-                        exportOptions.format === 'word'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-blue-300'
-                      }`}
-                    >
-                      <FileType className="w-6 h-6" />
-                      <span className="text-sm">Word</span>
-                    </button>
-                    <button
-                      onClick={() => handleExportImage()}
-                      className="flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 hover:border-blue-300 transition-all"
-                    >
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-sm">图片</span>
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      字体大小: {exportOptions.fontSize}px
-                    </label>
-                    <input
-                      type="range"
-                      min="8"
-                      max="16"
-                      value={exportOptions.fontSize}
-                      onChange={(e) =>
-                        setExportOptions({ ...exportOptions, fontSize: parseInt(e.target.value) })
-                      }
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      主题颜色
-                    </label>
-                    <div className="flex gap-2 flex-wrap">
-                      {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'].map(
-                        (color) => (
-                          <button
-                            key={color}
-                            onClick={() => setExportOptions({ ...exportOptions, primaryColor: color })}
-                            className={`w-8 h-8 rounded-full border-2 transition-all ${
-                              exportOptions.primaryColor === color
-                                ? 'border-gray-800 scale-110'
-                                : 'border-transparent hover:scale-105'
-                            }`}
-                            style={{ backgroundColor: color }}
-                          />
-                        )
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={exportOptions.includeHeader}
-                      onChange={(e) =>
-                        setExportOptions({ ...exportOptions, includeHeader: e.target.checked })
-                      }
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">包含表头</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={exportOptions.includeFooter}
-                      onChange={(e) =>
-                        setExportOptions({ ...exportOptions, includeFooter: e.target.checked })
-                      }
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">包含页脚</span>
-                  </label>
-                </div>
-                <div className="space-y-2">
-                  <button
-                    onClick={handleExport}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    导出日历排版 ({exportOptions.format.toUpperCase()})
-                  </button>
-                  <button
-                    onClick={handleExportJSON}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    <FileCode className="w-4 h-4" />
-                    导出 JSON 数据
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['日', '一', '二', '三', '四', '五', '六'].map((day) => (
               <div
@@ -439,7 +273,7 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-1" ref={calendarRef}>
             {calendarDays.map((day, index) => {
               if (day === null) {
                 return (
@@ -531,6 +365,124 @@ export function CalendarView({ schedule, persons }: CalendarViewProps) {
               ))}
           </div>
         </>
+      )}
+
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                <Download className="w-5 h-5 text-blue-600" />
+                导出排班表
+              </h3>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  选择导出格式
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    onClick={() => setExportOptions({ ...exportOptions, format: 'excel' })}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                      exportOptions.format === 'excel'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-blue-300 text-gray-600'
+                    }`}
+                  >
+                    <FileSpreadsheet className="w-8 h-8" />
+                    <span className="text-sm font-medium">Excel</span>
+                  </button>
+                  <button
+                    onClick={() => setExportOptions({ ...exportOptions, format: 'word' })}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                      exportOptions.format === 'word'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-blue-300 text-gray-600'
+                    }`}
+                  >
+                    <FileType className="w-8 h-8" />
+                    <span className="text-sm font-medium">Word</span>
+                  </button>
+                  <button
+                    onClick={handleExportImage}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 text-gray-600 transition-all"
+                  >
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-sm font-medium">图片</span>
+                  </button>
+                </div>
+              </div>
+
+              {exportOptions.format !== 'image' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      主题颜色
+                    </label>
+                    <div className="flex gap-3">
+                      {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'].map(
+                        (color) => (
+                          <button
+                            key={color}
+                            onClick={() => setExportOptions({ ...exportOptions, primaryColor: color })}
+                            className={`w-10 h-10 rounded-full border-2 transition-all ${
+                              exportOptions.primaryColor === color
+                                ? 'border-gray-800 scale-110'
+                                : 'border-transparent hover:scale-105'
+                            }`}
+                            style={{ backgroundColor: color }}
+                          />
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={exportOptions.includeHeader}
+                        onChange={(e) =>
+                          setExportOptions({ ...exportOptions, includeHeader: e.target.checked })
+                        }
+                        className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">包含表头（标题和日期范围）</span>
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={handleExport}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
+                  >
+                    <Download className="w-5 h-5" />
+                    导出 {exportOptions.format.toUpperCase()}
+                  </button>
+                </>
+              )}
+
+              <div className="pt-4 border-t">
+                <button
+                  onClick={handleExportJSON}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <FileCode className="w-5 h-5" />
+                  导出 JSON 数据
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

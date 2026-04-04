@@ -14,8 +14,6 @@
   },
   "..\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> html2canvas": {
     "id": 1173,
-    "files": [
-      "static/chunks/ad2866b8.989f74a0aef466bf.js"
-    ]
+    "files": []
   }
 }

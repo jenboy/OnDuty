@@ -57,8 +57,10 @@ export interface VersionHistory {
   data: Schedule;
 }
 
+export type ExportFormat = 'pdf' | 'excel' | 'word' | 'image';
+
 export interface ExportOptions {
-  format: 'pdf' | 'excel' | 'word';
+  format: ExportFormat;
   template: 'standard' | 'compact' | 'detailed';
   includeHeader: boolean;
   includeFooter: boolean;
