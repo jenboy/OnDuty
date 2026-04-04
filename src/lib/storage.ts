@@ -98,7 +98,9 @@ export class StorageManager {
 
   private getCurrentUserState(): AppState {
     if (!this.currentUserId) return defaultState;
-    return this.userData.dataByUser[this.currentUserId] || defaultState;
+    const state = this.userData.dataByUser[this.currentUserId] || defaultState;
+    // 返回深拷贝，避免引用问题
+    return JSON.parse(JSON.stringify(state));
   }
 
   private setCurrentUserState(state: AppState): void {
