@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Person } from '@/types';
-import { Plus, Trash2, Edit2, GripVertical, User } from 'lucide-react';
+import { Plus, Trash2, Edit2, GripVertical, User, CalendarX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PersonManagerProps {
@@ -16,6 +16,16 @@ interface PersonManagerProps {
 const COLORS = [
   '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
   '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
+];
+
+const WEEKDAYS = [
+  { value: 0, label: '周日' },
+  { value: 1, label: '周一' },
+  { value: 2, label: '周二' },
+  { value: 3, label: '周三' },
+  { value: 4, label: '周四' },
+  { value: 5, label: '周五' },
+  { value: 6, label: '周六' },
 ];
 
 export function PersonManager({
@@ -34,6 +44,7 @@ export function PersonManager({
     email: '',
     color: COLORS[0],
     isActive: true,
+    excludedDays: [] as number[],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,6 +63,7 @@ export function PersonManager({
       email: '',
       color: COLORS[0],
       isActive: true,
+      excludedDays: [],
     });
   };
 
@@ -63,6 +75,7 @@ export function PersonManager({
       email: person.email || '',
       color: person.color || COLORS[0],
       isActive: person.isActive,
+      excludedDays: person.excludedDays || [],
     });
     setEditingId(person.id);
     setIsAdding(true);
@@ -78,7 +91,26 @@ export function PersonManager({
       email: '',
       color: COLORS[0],
       isActive: true,
+      excludedDays: [],
     });
+  };
+
+  const toggleExcludedDay = (day: number) => {
+    const current = formData.excludedDays || [];
+    if (current.includes(day)) {
+      setFormData({ ...formData, excludedDays: current.filter(d => d !== day) });
+    } else {
+      setFormData({ ...formData, excludedDays: [...current, day] });
+    }
+  };
+
+  const getExcludedDaysLabel = (excludedDays?: number[]) => {
+    if (!excludedDays || excludedDays.length === 0) return null;
+    const labels = excludedDays
+      .sort((a, b) => a - b)
+      .map(d => WEEKDAYS.find(w => w.value === d)?.label)
+      .filter(Boolean);
+    return labels.join('、');
   };
 
   return (
@@ -175,6 +207,38 @@ export function PersonManager({
                 ))}
               </div>
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <CalendarX className="w-4 h-4 inline mr-1" />
+                不可排班日期（勾选该人员不可值班的星期）
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {WEEKDAYS.map((day) => (
+                  <label
+                    key={day.value}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border cursor-pointer transition-all',
+                      formData.excludedDays?.includes(day.value)
+                        ? 'bg-red-100 border-red-300 text-red-700'
+                        : 'bg-white border-gray-200 hover:border-gray-300'
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.excludedDays?.includes(day.value)}
+                      onChange={() => toggleExcludedDay(day.value)}
+                      className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                    />
+                    <span className="text-sm">{day.label}</span>
+                  </label>
+                ))}
+              </div>
+              {formData.excludedDays && formData.excludedDays.length > 0 && (
+                <p className="text-xs text-gray-500 mt-2">
+                  该人员将不会被安排在 {getExcludedDaysLabel(formData.excludedDays)} 值班
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex gap-2 mt-4">
             <button
@@ -218,7 +282,7 @@ export function PersonManager({
                 style={{ backgroundColor: person.color || COLORS[0] }}
               />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-gray-900">{person.name}</span>
                   {person.department && (
                     <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
@@ -228,6 +292,12 @@ export function PersonManager({
                   {!person.isActive && (
                     <span className="text-xs px-2 py-0.5 bg-red-100 text-red-600 rounded">
                       已停用
+                    </span>
+                  )}
+                  {person.excludedDays && person.excludedDays.length > 0 && (
+                    <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded flex items-center gap-1">
+                      <CalendarX className="w-3 h-3" />
+                      不排: {getExcludedDaysLabel(person.excludedDays)}
                     </span>
                   )}
                 </div>

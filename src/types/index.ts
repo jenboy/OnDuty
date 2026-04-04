@@ -7,6 +7,7 @@ export interface Person {
   color?: string;
   isActive: boolean;
   order: number;
+  excludedDays?: number[];
 }
 
 export type RotationStrategy = 'sequential' | 'reverse' | 'random';

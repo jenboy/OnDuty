@@ -38,6 +38,7 @@ export class SchedulerEngine {
 
     while (currentDate <= endDate) {
       const dateStr = formatDate(currentDate);
+      const dayOfWeek = currentDate.getDay();
       const isWeekendDay = isWeekend(currentDate);
       const holiday = this.getHoliday(currentDate);
       const isHoliday = !!holiday;
@@ -48,16 +49,35 @@ export class SchedulerEngine {
         (this.config.skipHolidays && isHoliday && !holiday?.isWorkday);
 
       if (!shouldSkip) {
-        const person = orderedPersons[personIndex % orderedPersons.length];
-        entries.push({
-          date: dateStr,
-          personId: person.id,
-          personName: person.name,
-          isHoliday,
-          holidayName: holiday?.name,
-          isWeekend: isWeekendDay,
-        });
-        personIndex++;
+        // 筛选出当天可用的人员（排除掉 excludedDays 包含当天星期几的人员）
+        const availablePersons = orderedPersons.filter(
+          p => !p.excludedDays || !p.excludedDays.includes(dayOfWeek)
+        );
+
+        if (availablePersons.length > 0) {
+          // 使用可用人员列表进行轮换
+          const person = availablePersons[personIndex % availablePersons.length];
+          entries.push({
+            date: dateStr,
+            personId: person.id,
+            personName: person.name,
+            isHoliday,
+            holidayName: holiday?.name,
+            isWeekend: isWeekendDay,
+          });
+          personIndex++;
+        } else {
+          // 如果当天没有可用人员，跳过或使用所有人员
+          // 这里选择跳过，也可以选择使用所有人员
+          entries.push({
+            date: dateStr,
+            personId: 'none',
+            personName: '无可用人员',
+            isHoliday,
+            holidayName: holiday?.name,
+            isWeekend: isWeekendDay,
+          });
+        }
       }
 
       // 移动到下一天
