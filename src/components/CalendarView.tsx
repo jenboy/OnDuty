@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Schedule, ScheduleEntry, Person, ExportOptions } from '@/types';
 import { ChevronLeft, ChevronRight, Calendar, BarChart3, TrendingUp, Download, FileText, FileSpreadsheet, FileType, FileCode, Settings, X } from 'lucide-react';
-import { getMonthName, getDaysInMonth } from '@/lib/utils';
+import { getMonthName, getDaysInMonth, getLunarDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { ExportManager } from '@/lib/export';
 import html2canvas from 'html2canvas';
@@ -12,6 +12,7 @@ interface CalendarViewProps {
   schedules: Schedule[];
   currentSchedule: Schedule | null;
   persons: Person[];
+  initialDate?: Date;
 }
 
 interface MonthlyStats {
@@ -21,8 +22,8 @@ interface MonthlyStats {
   color: string;
 }
 
-export function CalendarView({ schedules, currentSchedule, persons }: CalendarViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export function CalendarView({ schedules, currentSchedule, persons, initialDate }: CalendarViewProps) {
+  const [currentDate, setCurrentDate] = useState(initialDate || new Date());
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
@@ -261,6 +262,9 @@ export function CalendarView({ schedules, currentSchedule, persons }: CalendarVi
                       }`}
                     >
                       {day}
+                    </span>
+                    <span className="text-xs text-gray-400 mt-1">
+                      {getLunarDate(new Date(year, month, day))}
                     </span>
                     {entry && (
                       <div className="flex-1 flex items-center justify-center">

@@ -31,6 +31,7 @@ export default function Home() {
   const [showDataModal, setShowDataModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [calendarInitialDate, setCalendarInitialDate] = useState<Date | undefined>(undefined);
 
   // 检查认证状态
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function Home() {
 
   const handleLoadSchedule = (schedule: Schedule) => {
     setCurrentSchedule(schedule);
+    setCalendarInitialDate(new Date(schedule.config.startDate));
     setActiveTab('calendar');
   };
 
@@ -287,7 +289,12 @@ export default function Home() {
             )}
 
             {activeTab === 'calendar' && (
-              <CalendarView schedules={schedules} currentSchedule={currentSchedule} persons={persons} />
+              <CalendarView 
+                schedules={schedules} 
+                currentSchedule={currentSchedule} 
+                persons={persons} 
+                initialDate={calendarInitialDate} 
+              />
             )}
           </div>
 

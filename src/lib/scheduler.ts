@@ -24,13 +24,16 @@ export class SchedulerEngine {
     const endDate = new Date(this.config.endDate);
     
     let currentDate = new Date(startDate);
-    let personIndex = 0;
     
     const activePersons = [...this.persons];
     if (activePersons.length === 0) return entries;
 
     // 根据策略初始化人员顺序
     let orderedPersons = this.getOrderedPersons(activePersons, this.config.rotationStrategy);
+    
+    // 跟踪每个人的值班次数
+    const dutyCount = new Map<string, number>();
+    activePersons.forEach(person => dutyCount.set(person.id, 0));
 
     while (currentDate <= endDate) {
       const dateStr = formatDate(currentDate);
@@ -55,15 +58,23 @@ export class SchedulerEngine {
         );
 
         if (availablePersons.length > 0) {
-          // 使用可用人员列表进行轮换
-          const person = availablePersons[personIndex % availablePersons.length];
+          // 按值班次数排序，选择值班次数最少的人员
+          availablePersons.sort((a, b) => {
+            const countA = dutyCount.get(a.id) || 0;
+            const countB = dutyCount.get(b.id) || 0;
+            return countA - countB;
+          });
+          
+          const person = availablePersons[0];
           entries.push({
             date: dateStr,
             personId: person.id,
             personName: person.name,
             isWeekend: isWeekendDay,
           });
-          personIndex++;
+          
+          // 更新值班次数
+          dutyCount.set(person.id, (dutyCount.get(person.id) || 0) + 1);
         } else {
           // 如果当天没有可用人员，使用所有人员（即使是前一天值班的）
           const allAvailablePersons = orderedPersons.filter(
@@ -71,14 +82,23 @@ export class SchedulerEngine {
           );
           
           if (allAvailablePersons.length > 0) {
-            const person = allAvailablePersons[personIndex % allAvailablePersons.length];
+            // 按值班次数排序，选择值班次数最少的人员
+            allAvailablePersons.sort((a, b) => {
+              const countA = dutyCount.get(a.id) || 0;
+              const countB = dutyCount.get(b.id) || 0;
+              return countA - countB;
+            });
+            
+            const person = allAvailablePersons[0];
             entries.push({
               date: dateStr,
               personId: person.id,
               personName: person.name,
               isWeekend: isWeekendDay,
             });
-            personIndex++;
+            
+            // 更新值班次数
+            dutyCount.set(person.id, (dutyCount.get(person.id) || 0) + 1);
           } else {
             // 如果确实没有任何人员可用
             entries.push({
