@@ -79,7 +79,7 @@ export class ExportManager {
     doc.save(`${this.schedule.name}.pdf`);
   }
 
-  // 导出为 Excel (日历排版)
+  // 导出为 Excel (优化布局)
   exportToExcel(options: ExportOptions): void {
     const { entries } = this.schedule;
 
@@ -153,15 +153,27 @@ export class ExportManager {
       XLSX.utils.sheet_add_aoa(ws, calendarData, { origin: options.includeHeader ? 'A3' : 'A1' });
       
       // 设置列宽和行高
-      const colWidths = Array(7).fill({ wch: 15 });
+      const colWidths = Array(7).fill({ wch: 18 });
       ws['!cols'] = colWidths;
       
       // 设置行高
       const rowHeights = [];
       for (let i = 0; i < calendarData.length + (options.includeHeader ? 2 : 0); i++) {
-        rowHeights.push({ hpx: 60 });
+        rowHeights.push({ hpx: 70 });
       }
       ws['!rows'] = rowHeights;
+      
+      // 设置单元格样式
+      const headerStyle = {
+        font: { bold: true, sz: 14 },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { bgColor: { rgb: 'E3F2FD' } }
+      };
+      
+      const dayStyle = {
+        alignment: { horizontal: 'center', vertical: 'center' },
+        font: { sz: 12 }
+      };
       
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
     });

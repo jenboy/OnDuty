@@ -42,9 +42,16 @@ export class SchedulerEngine {
         (this.config.skipWeekends && isWeekendDay);
 
       if (!shouldSkip) {
-        // 筛选出当天可用的人员（排除掉 excludedDays 包含当天星期几的人员）
+        // 筛选出当天可用的人员
+        // 1. 排除掉 excludedDays 包含当天星期几的人员
+        // 2. 排除掉前一天值班的人员
+        const lastEntry = entries[entries.length - 1];
+        const lastPersonId = lastEntry?.personId;
+        
         const availablePersons = orderedPersons.filter(
-          p => !p.excludedDays || !p.excludedDays.includes(dayOfWeek)
+          p => 
+            (!p.excludedDays || !p.excludedDays.includes(dayOfWeek)) &&
+            p.id !== lastPersonId
         );
 
         if (availablePersons.length > 0) {
@@ -58,14 +65,29 @@ export class SchedulerEngine {
           });
           personIndex++;
         } else {
-          // 如果当天没有可用人员，跳过或使用所有人员
-          // 这里选择跳过，也可以选择使用所有人员
-          entries.push({
-            date: dateStr,
-            personId: 'none',
-            personName: '无可用人员',
-            isWeekend: isWeekendDay,
-          });
+          // 如果当天没有可用人员，使用所有人员（即使是前一天值班的）
+          const allAvailablePersons = orderedPersons.filter(
+            p => !p.excludedDays || !p.excludedDays.includes(dayOfWeek)
+          );
+          
+          if (allAvailablePersons.length > 0) {
+            const person = allAvailablePersons[personIndex % allAvailablePersons.length];
+            entries.push({
+              date: dateStr,
+              personId: person.id,
+              personName: person.name,
+              isWeekend: isWeekendDay,
+            });
+            personIndex++;
+          } else {
+            // 如果确实没有任何人员可用
+            entries.push({
+              date: dateStr,
+              personId: 'none',
+              personName: '无可用人员',
+              isWeekend: isWeekendDay,
+            });
+          }
         }
       }
 

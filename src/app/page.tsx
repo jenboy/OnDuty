@@ -19,6 +19,7 @@ import {
   RotateCcw,
   Database,
   LogOut,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -221,29 +222,31 @@ export default function Home() {
           <div className="lg:col-span-1 space-y-6">
             {schedules.length > 0 && activeTab !== 'export' && (
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
                   历史排班表 ({schedules.length})
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {schedules.map((schedule) => (
                     <div
                       key={schedule.id}
                       className={cn(
-                        'flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer',
+                        'flex items-center justify-between p-4 rounded-lg border transition-all cursor-pointer hover:shadow-sm',
                         currentSchedule?.id === schedule.id
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-blue-300'
                       )}
                       onClick={() => handleLoadSchedule(schedule)}
                     >
-                      <div>
-                        <div className="font-medium text-gray-900">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 truncate">
                           {schedule.name}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {schedule.config.startDate} 至{
-                            schedule.config.endDate
-                          } · {schedule.entries.length} 天
+                        <div className="text-sm text-gray-500 mt-1">
+                          {schedule.config.startDate} 至 {schedule.config.endDate}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          {schedule.entries.length} 天 · {schedule.personIds.length} 人
                         </div>
                       </div>
                       <button
@@ -253,7 +256,7 @@ export default function Home() {
                             deleteSchedule(schedule.id);
                           }
                         }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-2"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -291,22 +294,24 @@ export default function Home() {
           {/* Right Column - Quick Stats */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">统计信息</h3>
+              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                统计信息
+              </h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="text-gray-600">总人数</span>
                   <span className="text-2xl font-bold text-blue-600">
                     {persons.length}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="text-gray-600">启用人员</span>
                   <span className="text-2xl font-bold text-green-600">
                     {persons.filter((p) => p.isActive).length}
                   </span>
                 </div>
-
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="text-gray-600">排班表</span>
                   <span className="text-2xl font-bold text-purple-600">
                     {schedules.length}
@@ -317,27 +322,28 @@ export default function Home() {
 
             {currentSchedule && (
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
                   当前排班
                 </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
+                <div className="space-y-3">
+                  <div className="flex justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
                     <span className="text-gray-600">名称</span>
                     <span className="font-medium">{currentSchedule.name}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
                     <span className="text-gray-600">周期</span>
                     <span className="font-medium">
                       {currentSchedule.entries.length} 天
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
                     <span className="text-gray-600">参与人员</span>
                     <span className="font-medium">
                       {currentSchedule.personIds.length} 人
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
                     <span className="text-gray-600">创建时间</span>
                     <span className="font-medium">
                       {new Date(currentSchedule.createdAt).toLocaleDateString()}
@@ -346,35 +352,6 @@ export default function Home() {
                 </div>
               </div>
             )}
-
-            {/* 快速操作 */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">快速操作</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => setActiveTab('persons')}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <Users className="w-4 h-4" />
-                  管理人员
-                </button>
-                <button
-                  onClick={() => setActiveTab('schedule')}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <Settings className="w-4 h-4" />
-                  生成排班
-                </button>
-
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-4"
-                >
-                  <LogOut className="w-4 h-4" />
-                  退出登录
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </main>
