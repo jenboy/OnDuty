@@ -42,9 +42,15 @@ function generateScheduleName(
 }
 
 export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProps) {
+  // 计算月份最后一天
+  const getMonthEndDate = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  };
+
+  const today = new Date();
   const [config, setConfig] = useState<ScheduleConfig>({
-    startDate: formatDate(new Date()),
-    endDate: formatDate(new Date(new Date().setMonth(new Date().getMonth() + 1))),
+    startDate: formatDate(today),
+    endDate: formatDate(getMonthEndDate(today)),
     rotationStrategy: 'sequential',
     dutyType: 'daily',
     skipWeekends: false,
@@ -165,9 +171,12 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
             <input
               type="date"
               value={config.startDate}
-              onChange={(e) =>
-                setConfig({ ...config, startDate: e.target.value })
-              }
+              onChange={(e) => {
+                const newStartDate = e.target.value;
+                const startDateObj = new Date(newStartDate);
+                const newEndDate = formatDate(getMonthEndDate(startDateObj));
+                setConfig({ ...config, startDate: newStartDate, endDate: newEndDate });
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>

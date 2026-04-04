@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Person } from '@/types';
-import { Plus, Trash2, Edit2, GripVertical, User, CalendarX } from 'lucide-react';
+import { Plus, Trash2, Edit2, GripVertical, User, CalendarX, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PersonManagerProps {
@@ -35,7 +35,7 @@ export function PersonManager({
   onDelete,
   onReorder,
 }: PersonManagerProps) {
-  const [isAdding, setIsAdding] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -54,8 +54,8 @@ export function PersonManager({
       setEditingId(null);
     } else {
       onAdd(formData);
-      setIsAdding(false);
     }
+    setShowAddModal(false);
     setFormData({
       name: '',
       department: '',
@@ -78,11 +78,11 @@ export function PersonManager({
       excludedDays: person.excludedDays || [],
     });
     setEditingId(person.id);
-    setIsAdding(true);
+    setShowAddModal(true);
   };
 
   const handleCancel = () => {
-    setIsAdding(false);
+    setShowAddModal(false);
     setEditingId(null);
     setFormData({
       name: '',
@@ -123,139 +123,153 @@ export function PersonManager({
             ({persons.length} 人)
           </span>
         </h2>
-        {!isAdding && (
-          <button
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            添加人员
-          </button>
-        )}
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          添加人员
+        </button>
       </div>
 
-      {(isAdding || editingId) && (
-        <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                姓名 *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="请输入姓名"
-                required
-              />
+      {/* 添加/编辑人员弹窗 */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-bold text-lg text-gray-800">
+                {editingId ? '编辑人员' : '添加人员'}
+              </h3>
+              <button
+                onClick={handleCancel}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                部门
-              </label>
-              <input
-                type="text"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="请输入部门"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                电话
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="请输入电话"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                邮箱
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="请输入邮箱"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                标识颜色
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, color })}
-                    className={cn(
-                      'w-8 h-8 rounded-full border-2 transition-all',
-                      formData.color === color
-                        ? 'border-gray-800 scale-110'
-                        : 'border-transparent hover:scale-105'
-                    )}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <CalendarX className="w-4 h-4 inline mr-1" />
-                不可排班日期（勾选该人员不可值班的星期）
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {WEEKDAYS.map((day) => (
-                  <label
-                    key={day.value}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border cursor-pointer transition-all',
-                      formData.excludedDays?.includes(day.value)
-                        ? 'bg-red-100 border-red-300 text-red-700'
-                        : 'bg-white border-gray-200 hover:border-gray-300'
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.excludedDays?.includes(day.value)}
-                      onChange={() => toggleExcludedDay(day.value)}
-                      className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                    />
-                    <span className="text-sm">{day.label}</span>
+            <form onSubmit={handleSubmit} className="p-4">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    姓名 *
                   </label>
-                ))}
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="请输入姓名"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    部门
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="请输入部门"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    电话
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="请输入电话"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    邮箱
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="请输入邮箱"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    标识颜色
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {COLORS.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, color })}
+                        className={cn(
+                          'w-8 h-8 rounded-full border-2 transition-all',
+                          formData.color === color
+                            ? 'border-gray-800 scale-110'
+                            : 'border-transparent hover:scale-105'
+                        )}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <CalendarX className="w-4 h-4 inline mr-1" />
+                    不可排班日期（勾选该人员不可值班的星期）
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {WEEKDAYS.map((day) => (
+                      <label
+                        key={day.value}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border cursor-pointer transition-all',
+                          formData.excludedDays?.includes(day.value)
+                            ? 'bg-red-100 border-red-300 text-red-700'
+                            : 'bg-white border-gray-200 hover:border-gray-300'
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.excludedDays?.includes(day.value)}
+                          onChange={() => toggleExcludedDay(day.value)}
+                          className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                        />
+                        <span className="text-sm">{day.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {formData.excludedDays && formData.excludedDays.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      该人员将不会被安排在 {getExcludedDaysLabel(formData.excludedDays)} 值班
+                    </p>
+                  )}
+                </div>
               </div>
-              {formData.excludedDays && formData.excludedDays.length > 0 && (
-                <p className="text-xs text-gray-500 mt-2">
-                  该人员将不会被安排在 {getExcludedDaysLabel(formData.excludedDays)} 值班
-                </p>
-              )}
-            </div>
+              <div className="flex gap-2 mt-6">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  {editingId ? '保存修改' : '添加'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  取消
+                </button>
+              </div>
+            </form>
           </div>
-          <div className="flex gap-2 mt-4">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {editingId ? '保存修改' : '添加'}
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              取消
-            </button>
-          </div>
-        </form>
+        </div>
       )}
 
       <div className="space-y-2">
@@ -334,7 +348,11 @@ export function PersonManager({
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => onDelete(person.id)}
+                  onClick={() => {
+                    if (confirm('确定要删除该人员吗？删除后将无法恢复。')) {
+                      onDelete(person.id);
+                    }
+                  }}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title="删除"
                 >
