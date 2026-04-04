@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Person, ScheduleConfig, Schedule, RotationStrategy } from '@/types';
 import { SchedulerEngine, generateId } from '@/lib';
-import { Calendar, Settings, Play, AlertCircle, Wand2 } from 'lucide-react';
+import { Calendar, Settings, Play, AlertCircle, Wand2, X } from 'lucide-react';
 
 interface ScheduleGeneratorProps {
   persons: Person[];
@@ -68,6 +68,7 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
   const [scheduleName, setScheduleName] = useState('');
   const [nameFormat, setNameFormat] = useState<'monthly' | 'weekly'>('monthly');
   const [errors, setErrors] = useState<string[]>([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const activePersons = persons.filter((p) => p.isActive);
 
@@ -109,25 +110,11 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
 
     setErrors([]);
 
-    // 生成排班表前确认
-    const rotationStrategyText = {
-      sequential: '正序轮换',
-      reverse: '倒序轮换',
-      random: '随机轮换'
-    }[config.rotationStrategy];
+    // 显示确认弹窗
+    setShowConfirmModal(true);
+  };
 
-    const confirmMessage = `确认生成排班表：\n\n` +
-      `名称：${scheduleName}\n` +
-      `日期范围：${config.startDate} 至 ${config.endDate}\n` +
-      `参与人员：${activePersons.length} 人\n` +
-      `轮换策略：${rotationStrategyText}\n` +
-      `跳过周末：${config.skipWeekends ? '是' : '否'}\n\n` +
-      `是否开始生成？`;
-
-    if (!confirm(confirmMessage)) {
-      return;
-    }
-
+  const confirmGenerate = () => {
     // 生成排班
     const engine = new SchedulerEngine(activePersons, config);
     const entries = engine.generateSchedule();
@@ -262,39 +249,7 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            轮换策略
-          </label>
-          <select
-            value={config.rotationStrategy}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                rotationStrategy: e.target.value as RotationStrategy,
-              })
-            }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="sequential">正序轮换</option>
-            <option value="reverse">倒序轮换</option>
-            <option value="random">随机轮换</option>
-          </select>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-            <input
-              type="checkbox"
-              checked={config.skipWeekends}
-              onChange={(e) =>
-                setConfig({ ...config, skipWeekends: e.target.checked })
-              }
-              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">跳过周末</span>
-          </label>
-        </div>
 
         <div className="p-4 bg-blue-50 rounded-lg">
           <div className="flex items-center gap-2 text-blue-800 mb-2">
@@ -305,14 +260,6 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
             <p>参与人员：{activePersons.length} 人</p>
             <p>
               排班周期：{config.startDate} 至 {config.endDate}
-            </p>
-            <p>
-              轮换方式：
-              {config.rotationStrategy === 'sequential'
-                ? '正序轮换'
-                : config.rotationStrategy === 'reverse'
-                ? '倒序轮换'
-                : '随机轮换'}
             </p>
           </div>
         </div>
@@ -326,6 +273,97 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
           生成排班表
         </button>
       </div>
+
+      {/* 确认弹窗 */}
+      {showConfirmModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowConfirmModal(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-bold text-lg text-gray-800">确认生成排班表</h3>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">名称</span>
+                  <span className="font-medium">{scheduleName}</span>
+                </div>
+                <div className="flex justify-between p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">日期范围</span>
+                  <span className="font-medium">{config.startDate} 至 {config.endDate}</span>
+                </div>
+                <div className="flex justify-between p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">参与人员</span>
+                  <span className="font-medium">{activePersons.length} 人</span>
+                </div>
+              </div>
+
+              {/* 轮换策略选择 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  轮换策略
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'sequential', label: '正序轮换' },
+                    { value: 'reverse', label: '倒序轮换' },
+                    { value: 'random', label: '随机轮换' },
+                  ].map((strategy) => (
+                    <button
+                      key={strategy.value}
+                      onClick={() => setConfig({ ...config, rotationStrategy: strategy.value as RotationStrategy })}
+                      className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
+                        config.rotationStrategy === strategy.value
+                          ? 'bg-blue-100 border-blue-300 text-blue-700'
+                          : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      {strategy.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 跳过周末选项 */}
+              <label className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={config.skipWeekends}
+                  onChange={(e) => setConfig({ ...config, skipWeekends: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">跳过周末</span>
+              </label>
+            </div>
+            <div className="flex gap-2 p-4 border-t">
+              <button
+                onClick={confirmGenerate}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Play className="w-4 h-4" />
+                确认生成
+              </button>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
