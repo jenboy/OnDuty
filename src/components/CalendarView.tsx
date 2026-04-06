@@ -2,9 +2,8 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Schedule, ScheduleEntry, Person, ExportOptions } from '@/types';
-import { ChevronLeft, ChevronRight, Calendar, BarChart3, TrendingUp, Download, FileText, FileSpreadsheet, FileType, FileCode, Settings, X } from 'lucide-react';
-import { getMonthName, getDaysInMonth, getLunarDate } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { ChevronLeft, ChevronRight, Calendar, BarChart3, TrendingUp, Download, FileSpreadsheet, FileType, X } from 'lucide-react';
+import { getMonthName, getDaysInMonth, getLunarDate } from '@/lib';
 import { ExportManager } from '@/lib/export';
 import html2canvas from 'html2canvas';
 

@@ -2,24 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Person, ScheduleConfig, Schedule, RotationStrategy } from '@/types';
-import { SchedulerEngine, generateId } from '@/lib';
+import { SchedulerEngine } from '@/lib/scheduler';
+import { generateId, formatDate, getMonthEndDate, getWeekOfMonth, getMonthName } from '@/lib/utils';
 import { Calendar, Settings, Play, AlertCircle, Wand2, X } from 'lucide-react';
 
 interface ScheduleGeneratorProps {
   persons: Person[];
   onGenerate: (schedule: Schedule) => void;
-}
-
-const MONTHS = [
-  '一月', '二月', '三月', '四月', '五月', '六月',
-  '七月', '八月', '九月', '十月', '十一月', '十二月'
-];
-
-function getWeekOfMonth(date: Date): number {
-  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-  const firstWeekday = firstDay.getDay();
-  const dayOfMonth = date.getDate();
-  return Math.ceil((dayOfMonth + firstWeekday) / 7);
 }
 
 function generateScheduleName(
@@ -28,10 +17,9 @@ function generateScheduleName(
   type: 'monthly' | 'weekly'
 ): string {
   const start = new Date(startDate);
-  const end = new Date(endDate);
   const year = start.getFullYear();
-  const month = start.getMonth() + 1;
-  const monthName = MONTHS[month - 1];
+  const month = start.getMonth();
+  const monthName = getMonthName(month);
 
   if (type === 'weekly') {
     const weekNum = getWeekOfMonth(start);
@@ -42,18 +30,6 @@ function generateScheduleName(
 }
 
 export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProps) {
-  // 计算月份最后一天
-  const getMonthEndDate = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  };
-
-  // 格式化日期为 YYYY-MM-DD
-  const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const today = new Date();
   const monthEnd = getMonthEndDate(today);

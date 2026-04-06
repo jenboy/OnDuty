@@ -49,6 +49,17 @@ export function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
+export function getMonthEndDate(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+export function getWeekOfMonth(date: Date): number {
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+  const firstWeekday = firstDay.getDay();
+  const dayOfMonth = date.getDate();
+  return Math.ceil((dayOfMonth + firstWeekday) / 7);
+}
+
 // 农历日期转换函数 - 基于参考链接的算法
 const lunarMonthNames = ['', '正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月'];
 const lunarDayNames = ['', '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
