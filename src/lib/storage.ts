@@ -21,8 +21,11 @@ export class StorageManager {
   private static instance: StorageManager;
   private userData: UserData;
   private currentUserId: string | null;
+  private useCloudStorage: boolean;
+  private saveTimeout: NodeJS.Timeout | null = null;
 
   private constructor() {
+    this.useCloudStorage = this.checkCloudStorageAvailable();
     this.userData = this.loadFromStorage();
     this.currentUserId = this.loadAuth();
   }
@@ -34,7 +37,41 @@ export class StorageManager {
     return StorageManager.instance;
   }
 
-  private loadFromStorage(): UserData {
+  private checkCloudStorageAvailable(): boolean {
+    if (typeof window === 'undefined') return false;
+    // 检查是否在 Cloudflare Pages 环境中
+    return window.location.hostname !== 'localhost' && 
+           window.location.hostname !== '127.0.0.1';
+  }
+
+  private async loadFromCloudStorage(userId: string): Promise<UserData> {
+    try {
+      const response = await fetch(`/api/data/${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+    } catch (error) {
+      console.error('Failed to load data from cloud:', error);
+    }
+    return defaultUserData;
+  }
+
+  private async saveToCloudStorage(userId: string, data: UserData): Promise<void> {
+    try {
+      await fetch(`/api/data/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+    } catch (error) {
+      console.error('Failed to save data to cloud:', error);
+    }
+  }
+
+  private loadFromLocalStorage(): UserData {
     if (typeof window === 'undefined') return defaultUserData;
     
     try {
@@ -47,18 +84,36 @@ export class StorageManager {
         };
       }
     } catch (error) {
-      console.error('Failed to load data from storage:', error);
+      console.error('Failed to load data from local storage:', error);
     }
     return defaultUserData;
   }
 
-  private saveToStorage(): void {
+  private saveToLocalStorage(): void {
     if (typeof window === 'undefined') return;
     
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.userData));
     } catch (error) {
-      console.error('Failed to save data to storage:', error);
+      console.error('Failed to save data to local storage:', error);
+    }
+  }
+
+  private loadFromStorage(): UserData {
+    return this.loadFromLocalStorage();
+  }
+
+  private async saveToStorage(): Promise<void> {
+    this.saveToLocalStorage();
+    
+    if (this.useCloudStorage && this.currentUserId) {
+      if (this.saveTimeout) {
+        clearTimeout(this.saveTimeout);
+      }
+      this.saveTimeout = setTimeout(() => {
+        this.saveToCloudStorage(this.currentUserId!, this.userData);
+        this.saveTimeout = null;
+      }, 1000);
     }
   }
 
@@ -99,32 +154,41 @@ export class StorageManager {
   private getCurrentUserState(): AppState {
     if (!this.currentUserId) return defaultState;
     const state = this.userData.dataByUser[this.currentUserId] || defaultState;
-    // 返回深拷贝，避免引用问题
     return JSON.parse(JSON.stringify(state));
   }
 
-  private setCurrentUserState(state: AppState): void {
+  private async setCurrentUserState(state: AppState): Promise<void> {
     if (!this.currentUserId) return;
     this.userData.dataByUser[this.currentUserId] = state;
-    this.saveToStorage();
+    await this.saveToStorage();
   }
 
-  // 用户管理
-  login(password: string): boolean {
+  async login(password: string): Promise<boolean> {
     const user = this.userData.users.find(u => u.password === password);
     if (user) {
       this.currentUserId = user.id;
       user.lastLogin = new Date().toISOString();
       this.saveAuth(user.id);
-      this.saveToStorage();
+      
+      if (this.useCloudStorage) {
+        const cloudData = await this.loadFromCloudStorage(user.id);
+        if (cloudData.users.length > 0 || Object.keys(cloudData.dataByUser).length > 0) {
+          this.userData = cloudData;
+          this.saveToLocalStorage();
+        } else {
+          await this.saveToCloudStorage(user.id, this.userData);
+        }
+      }
+      
+      await this.saveToStorage();
       return true;
     }
     return false;
   }
 
-  register(password: string): boolean {
+  async register(password: string): Promise<boolean> {
     if (this.userData.users.some(u => u.password === password)) {
-      return false; // 密码已存在
+      return false;
     }
 
     const newUser: User = {
@@ -138,7 +202,7 @@ export class StorageManager {
     this.userData.dataByUser[newUser.id] = { ...defaultState };
     this.currentUserId = newUser.id;
     this.saveAuth(newUser.id);
-    this.saveToStorage();
+    await this.saveToStorage();
     return true;
   }
 
@@ -155,12 +219,11 @@ export class StorageManager {
     return this.currentUserId !== null;
   }
 
-  // 人员管理
   getPersons(): Person[] {
     return this.getCurrentUserState().persons;
   }
 
-  addPerson(person: Omit<Person, 'id' | 'order'>): Person {
+  async addPerson(person: Omit<Person, 'id' | 'order'>): Promise<Person> {
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -170,11 +233,11 @@ export class StorageManager {
       order: state.persons.length,
     };
     state.persons.push(newPerson);
-    this.setCurrentUserState(state);
+    await this.setCurrentUserState(state);
     return newPerson;
   }
 
-  updatePerson(id: string, updates: Partial<Person>): Person | null {
+  async updatePerson(id: string, updates: Partial<Person>): Promise<Person | null> {
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -182,11 +245,11 @@ export class StorageManager {
     if (index === -1) return null;
 
     state.persons[index] = { ...state.persons[index], ...updates };
-    this.setCurrentUserState(state);
+    await this.setCurrentUserState(state);
     return state.persons[index];
   }
 
-  deletePerson(id: string): boolean {
+  async deletePerson(id: string): Promise<boolean> {
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -194,13 +257,12 @@ export class StorageManager {
     if (index === -1) return false;
 
     state.persons.splice(index, 1);
-    // 重新排序
     state.persons.forEach((p, i) => { p.order = i; });
-    this.setCurrentUserState(state);
+    await this.setCurrentUserState(state);
     return true;
   }
 
-  reorderPersons(orderedIds: string[]): void {
+  async reorderPersons(orderedIds: string[]): Promise<void> {
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -213,12 +275,9 @@ export class StorageManager {
       }
     });
     state.persons = orderedPersons;
-    this.setCurrentUserState(state);
+    await this.setCurrentUserState(state);
   }
 
-
-
-  // 排班管理
   getSchedules(): Schedule[] {
     return this.getCurrentUserState().schedules;
   }
@@ -227,11 +286,10 @@ export class StorageManager {
     return this.getCurrentUserState().schedules.find(s => s.id === id) || null;
   }
 
-  saveSchedule(schedule: Schedule): Schedule {
+  async saveSchedule(schedule: Schedule): Promise<Schedule> {
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
-    // 保存版本历史
     this.saveVersion(schedule);
 
     const index = state.schedules.findIndex(s => s.id === schedule.id);
@@ -241,11 +299,11 @@ export class StorageManager {
       state.schedules[index] = schedule;
     }
     state.currentSchedule = schedule;
-    this.setCurrentUserState(state);
+    await this.setCurrentUserState(state);
     return schedule;
   }
 
-  deleteSchedule(id: string): boolean {
+  async deleteSchedule(id: string): Promise<boolean> {
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -256,23 +314,22 @@ export class StorageManager {
     if (state.currentSchedule?.id === id) {
       state.currentSchedule = null;
     }
-    this.setCurrentUserState(state);
+    await this.setCurrentUserState(state);
     return true;
   }
 
-  setCurrentSchedule(schedule: Schedule | null): void {
+  async setCurrentSchedule(schedule: Schedule | null): Promise<void> {
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
     state.currentSchedule = schedule;
-    this.setCurrentUserState(state);
+    await this.setCurrentUserState(state);
   }
 
   getCurrentSchedule(): Schedule | null {
     return this.getCurrentUserState().currentSchedule;
   }
 
-  // 版本管理
   private saveVersion(schedule: Schedule): void {
     if (!this.currentUserId) throw new Error('Not authenticated');
     
@@ -289,7 +346,6 @@ export class StorageManager {
       data: JSON.parse(JSON.stringify(schedule)),
     };
 
-    // 只保留最近5个版本
     const relatedVersions = state.versionHistory.filter(
       v => v.scheduleId === schedule.id
     );
@@ -313,7 +369,7 @@ export class StorageManager {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
-  rollbackToVersion(versionId: string): Schedule | null {
+  async rollbackToVersion(versionId: string): Promise<Schedule | null> {
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -327,25 +383,24 @@ export class StorageManager {
     if (index !== -1) {
       state.schedules[index] = schedule;
       state.currentSchedule = schedule;
-      this.setCurrentUserState(state);
+      await this.setCurrentUserState(state);
     }
 
     return schedule;
   }
 
-  // 数据导出导入
   exportData(): string {
     if (!this.currentUserId) throw new Error('Not authenticated');
     return JSON.stringify(this.getCurrentUserState(), null, 2);
   }
 
-  importData(jsonData: string): boolean {
+  async importData(jsonData: string): Promise<boolean> {
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     try {
       const data = JSON.parse(jsonData);
       const state = { ...defaultState, ...data };
-      this.setCurrentUserState(state);
+      await this.setCurrentUserState(state);
       return true;
     } catch (error) {
       console.error('Failed to import data:', error);
@@ -353,14 +408,12 @@ export class StorageManager {
     }
   }
 
-  // 清空数据
-  clearAll(): void {
+  async clearAll(): Promise<void> {
     if (!this.currentUserId) throw new Error('Not authenticated');
     this.userData.dataByUser[this.currentUserId] = { ...defaultState };
-    this.saveToStorage();
+    await this.saveToStorage();
   }
 
-  // 获取完整状态
   getState(): AppState {
     return this.getCurrentUserState();
   }

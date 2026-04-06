@@ -19,7 +19,8 @@
 
 ### 技术特点
 - **现代化 UI**：基于 Tailwind CSS 的响应式三栏设计
-- **本地存储**：数据保存在浏览器 localStorage，无需后端服务器
+- **云存储支持**：使用 Cloudflare KV 存储数据，支持跨设备同步相同密码的数据
+- **本地存储**：数据同时保存在浏览器 localStorage，离线也能使用
 - **静态部署**：可部署到 Cloudflare Pages、Vercel 等静态托管服务
 - **TypeScript**：完整的类型支持，代码更安全
 - **Next.js**：基于 React 的现代前端框架
@@ -49,25 +50,59 @@
 
 ### 部署
 
-#### 1. Vercel (推荐)
+#### 1. Cloudflare Pages (推荐，支持云存储)
+要启用云存储功能，需要配置 Cloudflare KV：
+
+1. **安装 Wrangler CLI**
+   ```bash
+   npm install -g wrangler
+   ```
+
+2. **登录 Cloudflare**
+   ```bash
+   wrangler login
+   ```
+
+3. **创建 KV 命名空间**
+   ```bash
+   wrangler kv:namespace create "ONDUTY_KV"
+   ```
+
+4. **更新 wrangler.toml**
+   将创建 KV 命名空间后获得的 ID 更新到 `wrangler.toml` 文件中：
+   ```toml
+   [[kv_namespaces]]
+   binding = "ONDUTY_KV"
+   id = "your-kv-namespace-id"  # 替换为实际的 ID
+   preview_id = "your-kv-namespace-preview-id"  # 替换为实际的预览 ID
+   ```
+
+5. **创建预览 KV 命名空间（可选）**
+   ```bash
+   wrangler kv:namespace create "ONDUTY_KV_PREVIEW" --preview
+   ```
+
+6. **部署到 Cloudflare Pages**
+   ```bash
+   cd OnDuty
+   npm run build
+   wrangler pages deploy
+   ```
+
+#### 2. Vercel (仅本地存储)
 ```bash
 cd OnDuty
 npx vercel
 ```
+注意：Vercel 部署仅支持本地存储，不支持跨设备数据同步。
 
-#### 2. Cloudflare Pages
-```bash
-cd OnDuty
-npm run build
-npx wrangler pages deploy .next
-```
-
-#### 3. 其他静态托管
+#### 3. 其他静态托管 (仅本地存储)
 ```bash
 cd OnDuty
 npm run build
 # 部署 .next 目录到任意静态托管服务
 ```
+注意：其他静态托管仅支持本地存储，不支持跨设备数据同步。
 
 ## 使用指南
 
@@ -138,14 +173,19 @@ OnDuty/
 │   ├── lib/              # 工具库
 │   │   ├── utils.ts      # 工具函数（含农历转换、节气计算）
 │   │   ├── scheduler.ts  # 排班引擎
-│   │   ├── storage.ts    # 数据存储
+│   │   ├── storage.ts    # 数据存储（支持 Cloudflare KV）
 │   │   └── export.ts     # 导出功能
 │   └── types/            # TypeScript 类型
 │       └── index.ts
+├── functions/            # Cloudflare Pages Functions
+│   └── api/
+│       └── data/
+│           └── [userId].ts # KV 数据 API
 ├── package.json
 ├── next.config.js
 ├── tailwind.config.ts
 ├── tsconfig.json
+├── wrangler.toml        # Cloudflare 配置
 └── README.md
 ```
 
@@ -154,13 +194,31 @@ OnDuty/
 - **前端框架**：Next.js 14
 - **UI 框架**：Tailwind CSS v3
 - **语言**：TypeScript
-- **状态管理**：React useState + localStorage
+- **状态管理**：React useState
+- **云存储**：Cloudflare KV
+- **本地存储**：localStorage（备用和离线使用）
 - **图标库**：Lucide React
 - **导出库**：
   - Excel: xlsx
   - Word: 原生 HTML
   - 图片: html2canvas
   - PDF: jspdf
+
+## 云存储工作原理
+
+项目支持两种存储模式：
+
+### 本地开发模式（localhost/127.0.0.1）
+- 仅使用浏览器 localStorage
+- 数据不会同步到云端
+- 适合本地开发和测试
+
+### 生产部署模式（Cloudflare Pages）
+- 同时使用 localStorage 和 Cloudflare KV
+- 数据自动同步到云端
+- 相同密码的用户可以在不同设备上访问相同数据
+- 登录时优先从云端加载数据，本地数据作为备份
+- 数据变更后自动保存到云端（1秒防抖）
 
 ## 浏览器支持
 

@@ -75,7 +75,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
 
     try {
       // 尝试登录
-      const loginResult = storage.login(password);
+      const loginResult = await storage.login(password);
       if (loginResult) {
         // 登录成功
         setMessage('登录成功！');
@@ -86,7 +86,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         }, 1000);
       } else {
         // 登录失败，自动注册
-        const registerResult = storage.register(password);
+        const registerResult = await storage.register(password);
         if (registerResult) {
           setMessage('密码未注册，已自动为您注册并登录！');
           setIsSuccess(true);

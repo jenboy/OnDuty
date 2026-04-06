@@ -8,7 +8,7 @@ import { Calendar, Settings, Play, AlertCircle, Wand2, X } from 'lucide-react';
 
 interface ScheduleGeneratorProps {
   persons: Person[];
-  onGenerate: (schedule: Schedule) => void;
+  onGenerate: (schedule: Schedule) => Promise<void>;
 }
 
 function generateScheduleName(
@@ -90,7 +90,7 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
     setShowConfirmModal(true);
   };
 
-  const confirmGenerate = () => {
+  const confirmGenerate = async () => {
     // 生成排班
     const engine = new SchedulerEngine(activePersons, config);
     const entries = engine.generateSchedule();
@@ -105,7 +105,7 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
       personIds: activePersons.map((p) => p.id),
     };
 
-    onGenerate(schedule);
+    await onGenerate(schedule);
   };
 
   return (

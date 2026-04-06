@@ -7,10 +7,10 @@ import { cn } from '@/lib/utils';
 
 interface PersonManagerProps {
   persons: Person[];
-  onAdd: (person: Omit<Person, 'id' | 'order'>) => void;
-  onUpdate: (id: string, updates: Partial<Person>) => void;
-  onDelete: (id: string) => void;
-  onReorder: (orderedIds: string[]) => void;
+  onAdd: (person: Omit<Person, 'id' | 'order'>) => Promise<Person>;
+  onUpdate: (id: string, updates: Partial<Person>) => Promise<Person | null>;
+  onDelete: (id: string) => Promise<boolean>;
+  onReorder: (orderedIds: string[]) => Promise<void>;
 }
 
 const COLORS = [
@@ -47,13 +47,13 @@ export function PersonManager({
     excludedDays: [] as number[],
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingId) {
-      onUpdate(editingId, formData);
+      await onUpdate(editingId, formData);
       setEditingId(null);
     } else {
-      onAdd(formData);
+      await onAdd(formData);
     }
     setShowAddModal(false);
     setFormData({
@@ -325,8 +325,8 @@ export function PersonManager({
               </div>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() =>
-                    onUpdate(person.id, { isActive: !person.isActive })
+                  onClick={async () =>
+                    await onUpdate(person.id, { isActive: !person.isActive })
                   }
                   className={cn(
                     'p-2 rounded-lg transition-colors',
@@ -348,9 +348,9 @@ export function PersonManager({
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (confirm('确定要删除该人员吗？删除后将无法恢复。')) {
-                      onDelete(person.id);
+                      await onDelete(person.id);
                     }
                   }}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

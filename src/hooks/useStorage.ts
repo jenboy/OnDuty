@@ -12,83 +12,134 @@ export function useStorage() {
     versionHistory: [],
   });
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const refreshState = useCallback(() => {
+    const loadedState = storage.getState();
+    setState(loadedState);
+  }, []);
 
   useEffect(() => {
     const loadedState = storage.getState();
     setState(loadedState);
     setIsLoaded(true);
-  }, []);
+  }, [refreshState]);
 
-  // 人员管理
-  const addPerson = useCallback((person: Omit<Person, 'id' | 'order'>) => {
-    const newPerson = storage.addPerson(person);
-    setState(storage.getState());
-    return newPerson;
-  }, []);
+  const addPerson = useCallback(async (person: Omit<Person, 'id' | 'order'>) => {
+    setIsSaving(true);
+    try {
+      const newPerson = await storage.addPerson(person);
+      refreshState();
+      return newPerson;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [refreshState]);
 
-  const updatePerson = useCallback((id: string, updates: Partial<Person>) => {
-    const updated = storage.updatePerson(id, updates);
-    setState(storage.getState());
-    return updated;
-  }, []);
+  const updatePerson = useCallback(async (id: string, updates: Partial<Person>) => {
+    setIsSaving(true);
+    try {
+      const updated = await storage.updatePerson(id, updates);
+      refreshState();
+      return updated;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [refreshState]);
 
-  const deletePerson = useCallback((id: string) => {
-    const result = storage.deletePerson(id);
-    setState(storage.getState());
-    return result;
-  }, []);
+  const deletePerson = useCallback(async (id: string) => {
+    setIsSaving(true);
+    try {
+      const result = await storage.deletePerson(id);
+      refreshState();
+      return result;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [refreshState]);
 
-  const reorderPersons = useCallback((orderedIds: string[]) => {
-    storage.reorderPersons(orderedIds);
-    setState(storage.getState());
-  }, []);
+  const reorderPersons = useCallback(async (orderedIds: string[]) => {
+    setIsSaving(true);
+    try {
+      await storage.reorderPersons(orderedIds);
+      refreshState();
+    } finally {
+      setIsSaving(false);
+    }
+  }, [refreshState]);
 
+  const saveSchedule = useCallback(async (schedule: Schedule) => {
+    setIsSaving(true);
+    try {
+      const saved = await storage.saveSchedule(schedule);
+      refreshState();
+      return saved;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [refreshState]);
 
+  const deleteSchedule = useCallback(async (id: string) => {
+    setIsSaving(true);
+    try {
+      const result = await storage.deleteSchedule(id);
+      refreshState();
+      return result;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [refreshState]);
 
-  // 排班管理
-  const saveSchedule = useCallback((schedule: Schedule) => {
-    const saved = storage.saveSchedule(schedule);
-    setState(storage.getState());
-    return saved;
-  }, []);
+  const setCurrentSchedule = useCallback(async (schedule: Schedule | null) => {
+    setIsSaving(true);
+    try {
+      await storage.setCurrentSchedule(schedule);
+      refreshState();
+    } finally {
+      setIsSaving(false);
+    }
+  }, [refreshState]);
 
-  const deleteSchedule = useCallback((id: string) => {
-    const result = storage.deleteSchedule(id);
-    setState(storage.getState());
-    return result;
-  }, []);
+  const rollbackToVersion = useCallback(async (versionId: string) => {
+    setIsSaving(true);
+    try {
+      const schedule = await storage.rollbackToVersion(versionId);
+      refreshState();
+      return schedule;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [refreshState]);
 
-  const setCurrentSchedule = useCallback((schedule: Schedule | null) => {
-    storage.setCurrentSchedule(schedule);
-    setState(storage.getState());
-  }, []);
-
-  // 版本管理
-  const rollbackToVersion = useCallback((versionId: string) => {
-    const schedule = storage.rollbackToVersion(versionId);
-    setState(storage.getState());
-    return schedule;
-  }, []);
-
-  // 数据导入导出
   const exportData = useCallback(() => {
     return storage.exportData();
   }, []);
 
-  const importData = useCallback((jsonData: string) => {
-    const result = storage.importData(jsonData);
-    setState(storage.getState());
-    return result;
-  }, []);
+  const importData = useCallback(async (jsonData: string) => {
+    setIsSaving(true);
+    try {
+      const result = await storage.importData(jsonData);
+      refreshState();
+      return result;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [refreshState]);
 
-  const clearAll = useCallback(() => {
-    storage.clearAll();
-    setState(storage.getState());
-  }, []);
+  const clearAll = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      await storage.clearAll();
+      refreshState();
+    } finally {
+      setIsSaving(false);
+    }
+  }, [refreshState]);
 
   return {
     ...state,
     isLoaded,
+    isSaving,
     addPerson,
     updatePerson,
     deletePerson,

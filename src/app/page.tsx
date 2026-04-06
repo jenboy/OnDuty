@@ -65,24 +65,25 @@ export default function Home() {
     clearAll,
   } = useStorage();
 
-  const handleGenerateSchedule = (schedule: Schedule) => {
-    saveSchedule(schedule);
+  const handleGenerateSchedule = async (schedule: Schedule) => {
+    await saveSchedule(schedule);
     setActiveTab('calendar');
   };
 
-  const handleLoadSchedule = (schedule: Schedule) => {
-    setCurrentSchedule(schedule);
+  const handleLoadSchedule = async (schedule: Schedule) => {
+    await setCurrentSchedule(schedule);
     setCalendarInitialDate(new Date(schedule.config.startDate));
     setActiveTab('calendar');
   };
 
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportData = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const content = event.target?.result as string;
-        if (importData(content)) {
+        const result = await importData(content);
+        if (result) {
           alert('数据导入成功！');
         } else {
           alert('数据导入失败，请检查文件格式。');
@@ -252,10 +253,10 @@ export default function Home() {
                         </div>
                       </div>
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
                           if (confirm('确定要删除这个排班表吗？')) {
-                            deleteSchedule(schedule.id);
+                            await deleteSchedule(schedule.id);
                           }
                         }}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-2"
@@ -424,9 +425,9 @@ export default function Home() {
 
               <div className="border-t border-gray-200 pt-4">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
-                      clearAll();
+                      await clearAll();
                       setShowDataModal(false);
                     }
                   }}
