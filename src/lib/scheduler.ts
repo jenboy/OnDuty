@@ -129,8 +129,5 @@ export class SchedulerEngine {
         return persons;
     }
   }
-
-
-
 }
 

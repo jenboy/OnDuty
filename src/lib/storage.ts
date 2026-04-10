@@ -22,16 +22,9 @@ export class StorageManager {
   private userData: UserData;
   private currentUserId: string | null;
   private useCloudStorage: boolean;
-  private saveTimeout: NodeJS.Timeout | null = null;
 
   private constructor() {
-    if (typeof window === 'undefined') {
-      this.useCloudStorage = false;
-    } else {
-      // 检查是否在 Cloudflare Pages 环境中
-      this.useCloudStorage = window.location.hostname !== 'localhost' && 
-                             window.location.hostname !== '127.0.0.1';
-    }
+    this.useCloudStorage = false;
     this.userData = this.loadFromStorage();
     this.currentUserId = this.loadAuth();
   }
@@ -45,32 +38,7 @@ export class StorageManager {
 
 
 
-  private async loadFromCloudStorage(userId: string): Promise<UserData> {
-    try {
-      const response = await fetch(`/api/data/${userId}`);
-      if (response.ok) {
-        const data = await response.json();
-        return data;
-      }
-    } catch (error) {
-      console.error('Failed to load data from cloud:', error);
-    }
-    return defaultUserData;
-  }
 
-  private async saveToCloudStorage(userId: string, data: UserData): Promise<void> {
-    try {
-      await fetch(`/api/data/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-    } catch (error) {
-      console.error('Failed to save data to cloud:', error);
-    }
-  }
 
   private loadFromLocalStorage(): UserData {
     if (typeof window === 'undefined') return defaultUserData;
@@ -106,16 +74,6 @@ export class StorageManager {
 
   private async saveToStorage(): Promise<void> {
     this.saveToLocalStorage();
-    
-    if (this.useCloudStorage && this.currentUserId) {
-      if (this.saveTimeout) {
-        clearTimeout(this.saveTimeout);
-      }
-      this.saveTimeout = setTimeout(() => {
-        this.saveToCloudStorage(this.currentUserId!, this.userData);
-        this.saveTimeout = null;
-      }, 1000);
-    }
   }
 
   private loadAuth(): string | null {
@@ -170,17 +128,6 @@ export class StorageManager {
       this.currentUserId = user.id;
       user.lastLogin = new Date().toISOString();
       this.saveAuth(user.id);
-      
-      if (this.useCloudStorage) {
-        const cloudData = await this.loadFromCloudStorage(user.id);
-        if (cloudData.users.length > 0 || Object.keys(cloudData.dataByUser).length > 0) {
-          this.userData = cloudData;
-          this.saveToLocalStorage();
-        } else {
-          await this.saveToCloudStorage(user.id, this.userData);
-        }
-      }
-      
       await this.saveToStorage();
       return true;
     }

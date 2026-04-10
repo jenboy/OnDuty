@@ -16,19 +16,16 @@ import {
   Menu,
   X,
   Trash2,
-  RotateCcw,
-  Database,
   LogOut,
   TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type TabType = 'persons' | 'schedule' | 'calendar' | 'export' | 'holidays';
+type TabType = 'persons' | 'schedule' | 'calendar';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('persons');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showDataModal, setShowDataModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [calendarInitialDate, setCalendarInitialDate] = useState<Date | undefined>(undefined);
@@ -133,13 +130,6 @@ export default function Home() {
 
             {/* Mobile Menu Button */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowDataModal(true)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                title="数据管理"
-              >
-                <Database className="w-5 h-5" />
-              </button>
               <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                 <span className="text-sm font-medium">
                   {storage.getCurrentUserId()?.substring(0, 1).toUpperCase() || 'U'}
@@ -203,7 +193,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Column - 历史排班表 */}
           <div className="lg:col-span-1 space-y-6">
-            {schedules.length > 0 && activeTab !== 'export' && (
+            {schedules.length > 0 && (
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-blue-600" />
@@ -344,32 +334,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Data Management Modal */}
-      {showDataModal && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowDataModal(false)}
-        >
-          <div 
-            className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">数据管理</h3>
-              <button
-                onClick={() => setShowDataModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="space-y-4">
-              {/* 数据管理功能已清理 */}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

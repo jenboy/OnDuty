@@ -3,7 +3,7 @@ import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { Schedule, ScheduleEntry, ExportOptions, Person } from '@/types';
-import { getMonthName, getWeekDayName, formatDate } from './utils';
+import { getMonthName } from './utils';
 
 export class ExportManager {
   private schedule: Schedule;
@@ -38,14 +38,13 @@ export class ExportManager {
     // 准备表格数据
     const tableData = entries.map(entry => [
       entry.date,
-      getWeekDayName(new Date(entry.date).getDay()),
       entry.personName,
     ]);
 
     // 生成表格
     (doc as any).autoTable({
       startY: options.includeHeader ? 40 : 20,
-      head: [['日期', '星期', '值班人员']],
+      head: [['日期', '值班人员']],
       body: tableData,
       theme: options.template === 'compact' ? 'plain' : 'grid',
       headStyles: {
