@@ -40,11 +40,8 @@ export class StorageManager {
   private checkCloudStorageAvailable(): boolean {
     if (typeof window === 'undefined') return false;
     // 检查是否在 Cloudflare Pages 环境中
-    // 对于 GitHub Pages，我们不使用云存储
-    const hostname = window.location.hostname;
-    return hostname !== 'localhost' && 
-           hostname !== '127.0.0.1' &&
-           !hostname.includes('github.io');
+    return window.location.hostname !== 'localhost' && 
+           window.location.hostname !== '127.0.0.1';
   }
 
   private async loadFromCloudStorage(userId: string): Promise<UserData> {
