@@ -4,8 +4,4 @@ compatibility_date = "2024-01-01"
 [build]
 command = "npm run build"
 
-[pages]
-build_output_dir = ".next"
-
-[[pages.functions]]
-kv_namespaces = [{ binding = "ONDUTY_KV", id = "", preview_id = "" }]
+pages_build_output_dir = ".next"
