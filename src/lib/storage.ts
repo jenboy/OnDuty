@@ -82,8 +82,8 @@ export class StorageManager {
 
   private async loadFromKVStorage(): Promise<UserData> {
     try {
-      if (typeof window !== 'undefined' && (window as any).ONDUTY_KV) {
-        const data = await (window as any).ONDUTY_KV.get('userData');
+      if (typeof ONDUTY_KV !== 'undefined') {
+        const data = await ONDUTY_KV.get('userData');
         if (data) {
           return JSON.parse(data);
         }
@@ -96,8 +96,8 @@ export class StorageManager {
 
   private async saveToKVStorage(data: UserData): Promise<void> {
     try {
-      if (typeof window !== 'undefined' && (window as any).ONDUTY_KV) {
-        await (window as any).ONDUTY_KV.put('userData', JSON.stringify(data));
+      if (typeof ONDUTY_KV !== 'undefined') {
+        await ONDUTY_KV.put('userData', JSON.stringify(data));
       }
     } catch (error) {
       console.error('Failed to save data to KV storage:', error);
