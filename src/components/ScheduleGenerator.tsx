@@ -172,7 +172,6 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               inputMode="numeric"
               pattern="\d{4}-\d{2}-\d{2}"
-              readOnly
             />
           </div>
           <div>
@@ -188,7 +187,6 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               inputMode="numeric"
               pattern="\d{4}-\d{2}-\d{2}"
-              readOnly
             />
           </div>
         </div>
