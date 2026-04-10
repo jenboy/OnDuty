@@ -3,7 +3,8 @@ compatibility_date = "2024-01-01"
 
 [[kv_namespaces]]
 binding = "ONDUTY_KV"
-id = ""
+id = "f1bca28d58684326972c0a4473cdef27"
+preview_id = "f1bca28d58684326972c0a4473cdef27"
 
 
 [assets]
