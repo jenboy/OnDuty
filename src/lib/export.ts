@@ -1,5 +1,3 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { Schedule, ScheduleEntry, ExportOptions, Person } from '@/types';
@@ -12,70 +10,6 @@ export class ExportManager {
   constructor(schedule: Schedule, persons: Person[]) {
     this.schedule = schedule;
     this.persons = persons;
-  }
-
-  // 导出为 PDF
-  exportToPDF(options: ExportOptions): void {
-    const doc = new jsPDF();
-    const { entries } = this.schedule;
-
-    // 设置字体（使用系统默认字体支持中文）
-    doc.setFont('helvetica');
-
-    // 标题
-    if (options.includeHeader) {
-      doc.setFontSize(options.fontSize + 8);
-      doc.text(this.schedule.name, 14, 20);
-      
-      doc.setFontSize(options.fontSize);
-      doc.text(
-        `排班周期: ${this.schedule.config.startDate} 至 ${this.schedule.config.endDate}`,
-        14,
-        30
-      );
-    }
-
-    // 准备表格数据
-    const tableData = entries.map(entry => [
-      entry.date,
-      entry.personName,
-    ]);
-
-    // 生成表格
-    (doc as any).autoTable({
-      startY: options.includeHeader ? 40 : 20,
-      head: [['日期', '值班人员']],
-      body: tableData,
-      theme: options.template === 'compact' ? 'plain' : 'grid',
-      headStyles: {
-        fillColor: this.hexToRgb(options.primaryColor),
-        textColor: 255,
-        fontSize: options.fontSize,
-      },
-      bodyStyles: {
-        fontSize: options.fontSize - 2,
-      },
-      alternateRowStyles: {
-        fillColor: [245, 245, 245],
-      },
-    });
-
-    // 页脚
-    if (options.includeFooter) {
-      const pageCount = (doc as any).internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(10);
-        doc.text(
-          `第 ${i} 页，共 ${pageCount} 页`,
-          doc.internal.pageSize.width - 30,
-          doc.internal.pageSize.height - 10
-        );
-      }
-    }
-
-    // 保存文件
-    doc.save(`${this.schedule.name}.pdf`);
   }
 
   // 导出为 Excel (优化布局)

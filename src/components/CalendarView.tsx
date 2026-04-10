@@ -115,9 +115,6 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
     const exporter = new ExportManager(schedules[0], persons);
 
     switch (exportOptions.format) {
-      case 'pdf':
-        exporter.exportToPDF(exportOptions);
-        break;
       case 'excel':
         exporter.exportToExcel(exportOptions);
         break;
