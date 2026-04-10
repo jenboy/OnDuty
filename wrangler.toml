@@ -1,13 +1,17 @@
 name = "duty-scheduler"
 compatibility_date = "2024-01-01"
 
-[[kv_namespaces]]
-binding = "ONDUTY_KV"
-id = "your-kv-namespace-id"
-preview_id = "your-kv-namespace-preview-id"
-
 [build]
 command = "npm run build"
 
-[[pages.build]]
-command = "npm run build"
+[pages]
+build_output_dir = ".next"
+
+[[pages.functions]]
+kv_namespaces = [
+  {
+    binding = "ONDUTY_KV",
+    id = "",
+    preview_id = ""
+  }
+]
