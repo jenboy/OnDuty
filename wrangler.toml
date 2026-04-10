@@ -8,10 +8,4 @@ command = "npm run build"
 build_output_dir = ".next"
 
 [[pages.functions]]
-kv_namespaces = [
-  {
-    binding = "ONDUTY_KV",
-    id = "",
-    preview_id = ""
-  }
-]
+kv_namespaces = [{ binding = "ONDUTY_KV", id = "", preview_id = "" }]

@@ -60,9 +60,6 @@ export default function Home() {
     saveSchedule,
     deleteSchedule,
     setCurrentSchedule,
-    exportData,
-    importData,
-    clearAll,
   } = useStorage();
 
   const handleGenerateSchedule = async (schedule: Schedule) => {
@@ -74,23 +71,6 @@ export default function Home() {
     await setCurrentSchedule(schedule);
     setCalendarInitialDate(new Date(schedule.config.startDate));
     setActiveTab('calendar');
-  };
-
-  const handleImportData = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const content = event.target?.result as string;
-        const result = await importData(content);
-        if (result) {
-          alert('数据导入成功！');
-        } else {
-          alert('数据导入失败，请检查文件格式。');
-        }
-      };
-      reader.readAsText(file);
-    }
   };
 
   const tabs = [
@@ -385,58 +365,7 @@ export default function Home() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  导出数据
-                </label>
-                <button
-                  onClick={() => {
-                    const data = exportData();
-                    const blob = new Blob([data], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `onduty-backup-${new Date().toISOString().split('T')[0]}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  导出备份
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  导入数据
-                </label>
-                <label className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer">
-                  <RotateCcw className="w-4 h-4" />
-                  选择备份文件
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportData}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              <div className="border-t border-gray-200 pt-4">
-                <button
-                  onClick={async () => {
-                    if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
-                      await clearAll();
-                      setShowDataModal(false);
-                    }
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  清空所有数据
-                </button>
-              </div>
+              {/* 数据管理功能已清理 */}
             </div>
           </div>
         </div>

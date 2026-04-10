@@ -25,7 +25,13 @@ export class StorageManager {
   private saveTimeout: NodeJS.Timeout | null = null;
 
   private constructor() {
-    this.useCloudStorage = this.checkCloudStorageAvailable();
+    if (typeof window === 'undefined') {
+      this.useCloudStorage = false;
+    } else {
+      // 检查是否在 Cloudflare Pages 环境中
+      this.useCloudStorage = window.location.hostname !== 'localhost' && 
+                             window.location.hostname !== '127.0.0.1';
+    }
     this.userData = this.loadFromStorage();
     this.currentUserId = this.loadAuth();
   }
@@ -37,12 +43,7 @@ export class StorageManager {
     return StorageManager.instance;
   }
 
-  private checkCloudStorageAvailable(): boolean {
-    if (typeof window === 'undefined') return false;
-    // 检查是否在 Cloudflare Pages 环境中
-    return window.location.hostname !== 'localhost' && 
-           window.location.hostname !== '127.0.0.1';
-  }
+
 
   private async loadFromCloudStorage(userId: string): Promise<UserData> {
     try {
@@ -389,30 +390,7 @@ export class StorageManager {
     return schedule;
   }
 
-  exportData(): string {
-    if (!this.currentUserId) throw new Error('Not authenticated');
-    return JSON.stringify(this.getCurrentUserState(), null, 2);
-  }
 
-  async importData(jsonData: string): Promise<boolean> {
-    if (!this.currentUserId) throw new Error('Not authenticated');
-    
-    try {
-      const data = JSON.parse(jsonData);
-      const state = { ...defaultState, ...data };
-      await this.setCurrentUserState(state);
-      return true;
-    } catch (error) {
-      console.error('Failed to import data:', error);
-      return false;
-    }
-  }
-
-  async clearAll(): Promise<void> {
-    if (!this.currentUserId) throw new Error('Not authenticated');
-    this.userData.dataByUser[this.currentUserId] = { ...defaultState };
-    await this.saveToStorage();
-  }
 
   getState(): AppState {
     return this.getCurrentUserState();

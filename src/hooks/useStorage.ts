@@ -100,42 +100,6 @@ export function useStorage() {
     }
   }, [refreshState]);
 
-  const rollbackToVersion = useCallback(async (versionId: string) => {
-    setIsSaving(true);
-    try {
-      const schedule = await storage.rollbackToVersion(versionId);
-      refreshState();
-      return schedule;
-    } finally {
-      setIsSaving(false);
-    }
-  }, [refreshState]);
-
-  const exportData = useCallback(() => {
-    return storage.exportData();
-  }, []);
-
-  const importData = useCallback(async (jsonData: string) => {
-    setIsSaving(true);
-    try {
-      const result = await storage.importData(jsonData);
-      refreshState();
-      return result;
-    } finally {
-      setIsSaving(false);
-    }
-  }, [refreshState]);
-
-  const clearAll = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      await storage.clearAll();
-      refreshState();
-    } finally {
-      setIsSaving(false);
-    }
-  }, [refreshState]);
-
   return {
     ...state,
     isLoaded,
@@ -147,9 +111,5 @@ export function useStorage() {
     saveSchedule,
     deleteSchedule,
     setCurrentSchedule,
-    rollbackToVersion,
-    exportData,
-    importData,
-    clearAll,
   };
 }
