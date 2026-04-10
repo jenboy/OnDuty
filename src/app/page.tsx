@@ -32,8 +32,12 @@ export default function Home() {
 
   // 检查认证状态
   useEffect(() => {
-    setIsAuthenticated(storage.isAuthenticated());
-    setIsLoading(false);
+    const checkAuth = async () => {
+      await storage.initialize();
+      setIsAuthenticated(storage.isAuthenticated());
+      setIsLoading(false);
+    };
+    checkAuth();
   }, []);
 
   const handleAuthSuccess = () => {

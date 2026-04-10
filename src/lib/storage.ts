@@ -1,6 +1,17 @@
 import { AppState, Person, Schedule, VersionHistory, User, UserData } from '@/types';
 import { generateId } from './utils';
 
+// Cloudflare KV 绑定类型
+interface KVNamespace {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string): Promise<void>;
+  delete(key: string): Promise<void>;
+}
+
+declare global {
+  var ON_DUTY_DATA: KVNamespace;
+}
+
 const STORAGE_KEY = 'onduty-data';
 const AUTH_KEY = 'onduty-auth';
 const MAX_VERSIONS = 5;
@@ -19,21 +30,26 @@ const defaultUserData: UserData = {
 
 export class StorageManager {
   private static instance: StorageManager;
-  private userData: UserData;
-  private currentUserId: string | null;
-  private useCloudStorage: boolean;
+  private userData: UserData = defaultUserData;
+  private currentUserId: string | null = null;
+  private useCloudStorage: boolean = true;
+  private isInitialized: boolean = false;
 
-  private constructor() {
-    this.useCloudStorage = false;
-    this.userData = this.loadFromStorage();
-    this.currentUserId = this.loadAuth();
-  }
+  private constructor() {}
 
   static getInstance(): StorageManager {
     if (!StorageManager.instance) {
       StorageManager.instance = new StorageManager();
     }
     return StorageManager.instance;
+  }
+
+  async initialize(): Promise<void> {
+    if (!this.isInitialized) {
+      this.userData = await this.loadFromStorage();
+      this.currentUserId = this.loadAuth();
+      this.isInitialized = true;
+    }
   }
 
 
@@ -68,12 +84,42 @@ export class StorageManager {
     }
   }
 
-  private loadFromStorage(): UserData {
+  private async loadFromKVStorage(): Promise<UserData> {
+    try {
+      if (typeof window !== 'undefined' && (window as any).ON_DUTY_DATA) {
+        const data = await (window as any).ON_DUTY_DATA.get('userData');
+        if (data) {
+          return JSON.parse(data);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load data from KV storage:', error);
+    }
+    return this.loadFromLocalStorage();
+  }
+
+  private async saveToKVStorage(data: UserData): Promise<void> {
+    try {
+      if (typeof window !== 'undefined' && (window as any).ON_DUTY_DATA) {
+        await (window as any).ON_DUTY_DATA.put('userData', JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error('Failed to save data to KV storage:', error);
+    }
+  }
+
+  private async loadFromStorage(): Promise<UserData> {
+    if (this.useCloudStorage) {
+      return await this.loadFromKVStorage();
+    }
     return this.loadFromLocalStorage();
   }
 
   private async saveToStorage(): Promise<void> {
     this.saveToLocalStorage();
+    if (this.useCloudStorage) {
+      await this.saveToKVStorage(this.userData);
+    }
   }
 
   private loadAuth(): string | null {
@@ -123,6 +169,7 @@ export class StorageManager {
   }
 
   async login(password: string): Promise<boolean> {
+    await this.initialize();
     const user = this.userData.users.find(u => u.password === password);
     if (user) {
       this.currentUserId = user.id;
@@ -135,6 +182,7 @@ export class StorageManager {
   }
 
   async register(password: string): Promise<boolean> {
+    await this.initialize();
     if (this.userData.users.some(u => u.password === password)) {
       return false;
     }
@@ -167,11 +215,13 @@ export class StorageManager {
     return this.currentUserId !== null;
   }
 
-  getPersons(): Person[] {
+  async getPersons(): Promise<Person[]> {
+    await this.initialize();
     return this.getCurrentUserState().persons;
   }
 
   async addPerson(person: Omit<Person, 'id' | 'order'>): Promise<Person> {
+    await this.initialize();
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -186,6 +236,7 @@ export class StorageManager {
   }
 
   async updatePerson(id: string, updates: Partial<Person>): Promise<Person | null> {
+    await this.initialize();
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -198,6 +249,7 @@ export class StorageManager {
   }
 
   async deletePerson(id: string): Promise<boolean> {
+    await this.initialize();
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -211,6 +263,7 @@ export class StorageManager {
   }
 
   async reorderPersons(orderedIds: string[]): Promise<void> {
+    await this.initialize();
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -226,19 +279,22 @@ export class StorageManager {
     await this.setCurrentUserState(state);
   }
 
-  getSchedules(): Schedule[] {
+  async getSchedules(): Promise<Schedule[]> {
+    await this.initialize();
     return this.getCurrentUserState().schedules;
   }
 
-  getSchedule(id: string): Schedule | null {
+  async getSchedule(id: string): Promise<Schedule | null> {
+    await this.initialize();
     return this.getCurrentUserState().schedules.find(s => s.id === id) || null;
   }
 
   async saveSchedule(schedule: Schedule): Promise<Schedule> {
+    await this.initialize();
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
-    this.saveVersion(schedule);
+    await this.saveVersion(schedule);
 
     const index = state.schedules.findIndex(s => s.id === schedule.id);
     if (index === -1) {
@@ -252,6 +308,7 @@ export class StorageManager {
   }
 
   async deleteSchedule(id: string): Promise<boolean> {
+    await this.initialize();
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -267,6 +324,7 @@ export class StorageManager {
   }
 
   async setCurrentSchedule(schedule: Schedule | null): Promise<void> {
+    await this.initialize();
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -274,11 +332,13 @@ export class StorageManager {
     await this.setCurrentUserState(state);
   }
 
-  getCurrentSchedule(): Schedule | null {
+  async getCurrentSchedule(): Promise<Schedule | null> {
+    await this.initialize();
     return this.getCurrentUserState().currentSchedule;
   }
 
-  private saveVersion(schedule: Schedule): void {
+  private async saveVersion(schedule: Schedule): Promise<void> {
+    await this.initialize();
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -308,16 +368,18 @@ export class StorageManager {
     }
 
     state.versionHistory.unshift(version);
-    this.setCurrentUserState(state);
+    await this.setCurrentUserState(state);
   }
 
-  getVersionHistory(scheduleId: string): VersionHistory[] {
+  async getVersionHistory(scheduleId: string): Promise<VersionHistory[]> {
+    await this.initialize();
     return this.getCurrentUserState().versionHistory
       .filter(v => v.scheduleId === scheduleId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
   async rollbackToVersion(versionId: string): Promise<Schedule | null> {
+    await this.initialize();
     if (!this.currentUserId) throw new Error('Not authenticated');
     
     const state = this.getCurrentUserState();
@@ -339,7 +401,8 @@ export class StorageManager {
 
 
 
-  getState(): AppState {
+  async getState(): Promise<AppState> {
+    await this.initialize();
     return this.getCurrentUserState();
   }
 }

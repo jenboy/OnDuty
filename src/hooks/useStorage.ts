@@ -14,22 +14,25 @@ export function useStorage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const refreshState = useCallback(() => {
-    const loadedState = storage.getState();
+  const refreshState = useCallback(async () => {
+    const loadedState = await storage.getState();
     setState(loadedState);
   }, []);
 
   useEffect(() => {
-    const loadedState = storage.getState();
-    setState(loadedState);
-    setIsLoaded(true);
+    const loadState = async () => {
+      const loadedState = await storage.getState();
+      setState(loadedState);
+      setIsLoaded(true);
+    };
+    loadState();
   }, [refreshState]);
 
   const addPerson = useCallback(async (person: Omit<Person, 'id' | 'order'>) => {
     setIsSaving(true);
     try {
       const newPerson = await storage.addPerson(person);
-      refreshState();
+      await refreshState();
       return newPerson;
     } finally {
       setIsSaving(false);
@@ -40,7 +43,7 @@ export function useStorage() {
     setIsSaving(true);
     try {
       const updated = await storage.updatePerson(id, updates);
-      refreshState();
+      await refreshState();
       return updated;
     } finally {
       setIsSaving(false);
@@ -51,7 +54,7 @@ export function useStorage() {
     setIsSaving(true);
     try {
       const result = await storage.deletePerson(id);
-      refreshState();
+      await refreshState();
       return result;
     } finally {
       setIsSaving(false);
@@ -62,7 +65,7 @@ export function useStorage() {
     setIsSaving(true);
     try {
       await storage.reorderPersons(orderedIds);
-      refreshState();
+      await refreshState();
     } finally {
       setIsSaving(false);
     }
@@ -72,7 +75,7 @@ export function useStorage() {
     setIsSaving(true);
     try {
       const saved = await storage.saveSchedule(schedule);
-      refreshState();
+      await refreshState();
       return saved;
     } finally {
       setIsSaving(false);
@@ -83,7 +86,7 @@ export function useStorage() {
     setIsSaving(true);
     try {
       const result = await storage.deleteSchedule(id);
-      refreshState();
+      await refreshState();
       return result;
     } finally {
       setIsSaving(false);
@@ -94,7 +97,7 @@ export function useStorage() {
     setIsSaving(true);
     try {
       await storage.setCurrentSchedule(schedule);
-      refreshState();
+      await refreshState();
     } finally {
       setIsSaving(false);
     }

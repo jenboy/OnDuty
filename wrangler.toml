@@ -1,5 +1,10 @@
 name = "onduty"
 compatibility_date = "2024-01-01"
 
+[kv_namespaces]
+binding = "ON_DUTY_DATA"
+id = ""
+preview_id = ""
+
 [assets]
 directory = "./dist"
