@@ -44,9 +44,9 @@ export class StorageManager {
     return StorageManager.instance;
   }
 
-  async initialize(): Promise<void> {
+  initialize(): void {
     if (!this.isInitialized) {
-      this.userData = await this.loadFromStorage();
+      this.userData = this.loadFromStorage();
       // 确保默认用户数据存在
       if (!this.userData.dataByUser[this.currentUserId]) {
         this.userData.dataByUser[this.currentUserId] = { ...defaultState };
@@ -92,19 +92,21 @@ export class StorageManager {
   }
 
   private getCurrentUserState(): AppState {
+    this.initialize();
     const state = this.userData.dataByUser[this.currentUserId] || defaultState;
     return JSON.parse(JSON.stringify(state));
   }
 
   private setCurrentUserState(state: AppState): void {
+    this.initialize();
     this.userData.dataByUser[this.currentUserId] = state;
     this.saveToStorage();
   }
 
 
 
-  async getPersons(): Promise<Person[]> {
-    await this.initialize();
+  getPersons(): Person[] {
+    this.initialize();
     return this.getCurrentUserState().persons;
   }
 
