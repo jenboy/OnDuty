@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useStorage } from '@/hooks/useStorage';
+import { useStore } from '@/store/useStore';
 import { PersonManager } from '@/components/PersonManager';
 import { ScheduleGenerator } from '@/components/ScheduleGenerator';
 import { CalendarView } from '@/components/CalendarView';
-
 import { Schedule } from '@/types';
 
-import { storage } from '@/lib/storage';
 import {
   Users,
   Calendar,
@@ -26,39 +24,36 @@ type TabType = 'persons' | 'schedule' | 'calendar';
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('persons');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [calendarInitialDate, setCalendarInitialDate] = useState<Date | undefined>(undefined);
 
   // 初始化存储
+  const { 
+    persons, 
+    schedules, 
+    currentSchedule, 
+    isLoaded, 
+    isSaving, 
+    addPerson, 
+    updatePerson, 
+    deletePerson, 
+    reorderPersons, 
+    saveSchedule, 
+    deleteSchedule, 
+    setCurrentSchedule, 
+    loadState 
+  } = useStore();
+
   useEffect(() => {
-    const initializeStorage = () => {
-      storage.initialize();
-      setIsLoading(false);
-    };
-    initializeStorage();
-  }, []);
+    loadState();
+  }, [loadState]);
 
-  const {
-    persons,
-    schedules,
-    currentSchedule,
-    isLoaded,
-    addPerson,
-    updatePerson,
-    deletePerson,
-    reorderPersons,
-    saveSchedule,
-    deleteSchedule,
-    setCurrentSchedule,
-  } = useStorage();
-
-  const handleGenerateSchedule = async (schedule: Schedule) => {
-    await saveSchedule(schedule);
+  const handleGenerateSchedule = (schedule: Schedule) => {
+    saveSchedule(schedule);
     setActiveTab('calendar');
   };
 
-  const handleLoadSchedule = async (schedule: Schedule) => {
-    await setCurrentSchedule(schedule);
+  const handleLoadSchedule = (schedule: Schedule) => {
+    setCurrentSchedule(schedule);
     setCalendarInitialDate(new Date(schedule.config.startDate));
     setActiveTab('calendar');
   };
@@ -68,16 +63,6 @@ export default function Home() {
     { id: 'schedule' as TabType, label: '排班设置', icon: Settings },
     { id: 'calendar' as TabType, label: '日历视图', icon: Calendar },
   ];
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-gray-600">加载中...</div>
-      </div>
-    );
-  }
-
-
 
   if (!isLoaded) {
     return (
