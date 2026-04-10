@@ -1,7 +1,6 @@
-name = "duty-scheduler"
+# Cloudflare Pages configuration
+name = "onduty"
 compatibility_date = "2024-01-01"
 
-[build]
-command = "npm run build"
-
-pages_build_output_dir = ".next"
+# Deploy command: wrangler pages deploy .next
+# Or use GitHub integration for automatic deployments
