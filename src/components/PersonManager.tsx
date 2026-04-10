@@ -7,10 +7,10 @@ import { cn } from '@/lib/utils';
 
 interface PersonManagerProps {
   persons: Person[];
-  onAdd: (person: Omit<Person, 'id' | 'order'>) => Promise<Person>;
-  onUpdate: (id: string, updates: Partial<Person>) => Promise<Person | null>;
-  onDelete: (id: string) => Promise<boolean>;
-  onReorder: (orderedIds: string[]) => Promise<void>;
+  onAdd: (person: Omit<Person, 'id' | 'order'>) => Person;
+  onUpdate: (id: string, updates: Partial<Person>) => Person | null;
+  onDelete: (id: string) => boolean;
+  onReorder: (orderedIds: string[]) => void;
 }
 
 const COLORS = [
@@ -47,13 +47,13 @@ export function PersonManager({
     excludedDays: [] as number[],
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingId) {
-      await onUpdate(editingId, formData);
+      onUpdate(editingId, formData);
       setEditingId(null);
     } else {
-      await onAdd(formData);
+      onAdd(formData);
     }
     setShowAddModal(false);
     setFormData({

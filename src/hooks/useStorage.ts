@@ -14,90 +14,90 @@ export function useStorage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const refreshState = useCallback(async () => {
-    const loadedState = await storage.getState();
+  const refreshState = useCallback(() => {
+    const loadedState = storage.getState();
     setState(loadedState);
   }, []);
 
   useEffect(() => {
-    const loadState = async () => {
-      const loadedState = await storage.getState();
+    const loadState = () => {
+      const loadedState = storage.getState();
       setState(loadedState);
       setIsLoaded(true);
     };
     loadState();
   }, [refreshState]);
 
-  const addPerson = useCallback(async (person: Omit<Person, 'id' | 'order'>) => {
+  const addPerson = useCallback((person: Omit<Person, 'id' | 'order'>) => {
     setIsSaving(true);
     try {
-      const newPerson = await storage.addPerson(person);
-      await refreshState();
+      const newPerson = storage.addPerson(person);
+      refreshState();
       return newPerson;
     } finally {
       setIsSaving(false);
     }
   }, [refreshState]);
 
-  const updatePerson = useCallback(async (id: string, updates: Partial<Person>) => {
+  const updatePerson = useCallback((id: string, updates: Partial<Person>) => {
     setIsSaving(true);
     try {
-      const updated = await storage.updatePerson(id, updates);
-      await refreshState();
+      const updated = storage.updatePerson(id, updates);
+      refreshState();
       return updated;
     } finally {
       setIsSaving(false);
     }
   }, [refreshState]);
 
-  const deletePerson = useCallback(async (id: string) => {
+  const deletePerson = useCallback((id: string) => {
     setIsSaving(true);
     try {
-      const result = await storage.deletePerson(id);
-      await refreshState();
+      const result = storage.deletePerson(id);
+      refreshState();
       return result;
     } finally {
       setIsSaving(false);
     }
   }, [refreshState]);
 
-  const reorderPersons = useCallback(async (orderedIds: string[]) => {
+  const reorderPersons = useCallback((orderedIds: string[]) => {
     setIsSaving(true);
     try {
-      await storage.reorderPersons(orderedIds);
-      await refreshState();
+      storage.reorderPersons(orderedIds);
+      refreshState();
     } finally {
       setIsSaving(false);
     }
   }, [refreshState]);
 
-  const saveSchedule = useCallback(async (schedule: Schedule) => {
+  const saveSchedule = useCallback((schedule: Schedule) => {
     setIsSaving(true);
     try {
-      const saved = await storage.saveSchedule(schedule);
-      await refreshState();
+      const saved = storage.saveSchedule(schedule);
+      refreshState();
       return saved;
     } finally {
       setIsSaving(false);
     }
   }, [refreshState]);
 
-  const deleteSchedule = useCallback(async (id: string) => {
+  const deleteSchedule = useCallback((id: string) => {
     setIsSaving(true);
     try {
-      const result = await storage.deleteSchedule(id);
-      await refreshState();
+      const result = storage.deleteSchedule(id);
+      refreshState();
       return result;
     } finally {
       setIsSaving(false);
     }
   }, [refreshState]);
 
-  const setCurrentSchedule = useCallback(async (schedule: Schedule | null) => {
+  const setCurrentSchedule = useCallback((schedule: Schedule | null) => {
     setIsSaving(true);
     try {
-      await storage.setCurrentSchedule(schedule);
-      await refreshState();
+      storage.setCurrentSchedule(schedule);
+      refreshState();
     } finally {
       setIsSaving(false);
     }

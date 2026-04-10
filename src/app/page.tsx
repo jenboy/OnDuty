@@ -5,7 +5,7 @@ import { useStorage } from '@/hooks/useStorage';
 import { PersonManager } from '@/components/PersonManager';
 import { ScheduleGenerator } from '@/components/ScheduleGenerator';
 import { CalendarView } from '@/components/CalendarView';
-import { AuthPage } from '@/components/AuthPage';
+
 import { Schedule } from '@/types';
 
 import { storage } from '@/lib/storage';
@@ -17,7 +17,6 @@ import {
   Menu,
   X,
   Trash2,
-  LogOut,
   TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,28 +26,17 @@ type TabType = 'persons' | 'schedule' | 'calendar';
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('persons');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [calendarInitialDate, setCalendarInitialDate] = useState<Date | undefined>(undefined);
 
-  // 检查认证状态
+  // 初始化存储
   useEffect(() => {
-    const checkAuth = async () => {
-      await storage.initialize();
-      setIsAuthenticated(storage.isAuthenticated());
+    const initializeStorage = () => {
+      storage.initialize();
       setIsLoading(false);
     };
-    checkAuth();
+    initializeStorage();
   }, []);
-
-  const handleAuthSuccess = () => {
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    storage.logout();
-    setIsAuthenticated(false);
-  };
 
   const {
     persons,
@@ -89,9 +77,7 @@ export default function Home() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
-  }
+
 
   if (!isLoaded) {
     return (
@@ -134,19 +120,7 @@ export default function Home() {
             </nav>
 
             {/* Mobile Menu Button */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium">
-                  {storage.getCurrentUserId()?.substring(0, 1).toUpperCase() || 'U'}
-                </span>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                title="退出登录"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
+            <div className="flex items-center">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
@@ -182,13 +156,7 @@ export default function Home() {
                 {tab.label}
               </button>
             ))}
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors"
-            >
-              <LogOut className="w-5 h-5" />
-              退出登录
-            </button>
+
           </nav>
         )}
       </header>
