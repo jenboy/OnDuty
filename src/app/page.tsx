@@ -6,7 +6,8 @@ import { PersonManager } from '@/components/PersonManager';
 import { ScheduleGenerator } from '@/components/ScheduleGenerator';
 import { CalendarView } from '@/components/CalendarView';
 import { AuthPage } from '@/components/AuthPage';
-import { Schedule, Person } from '@/types';
+import { Schedule } from '@/types';
+
 import { storage } from '@/lib/storage';
 import {
   Users,

@@ -9,7 +9,7 @@ interface KVNamespace {
 }
 
 declare global {
-  var ON_DUTY_DATA: KVNamespace;
+  var ONDUTY_KV: KVNamespace;
 }
 
 const STORAGE_KEY = 'onduty-data';
@@ -52,10 +52,6 @@ export class StorageManager {
     }
   }
 
-
-
-
-
   private loadFromLocalStorage(): UserData {
     if (typeof window === 'undefined') return defaultUserData;
     
@@ -86,8 +82,8 @@ export class StorageManager {
 
   private async loadFromKVStorage(): Promise<UserData> {
     try {
-      if (typeof window !== 'undefined' && (window as any).ON_DUTY_DATA) {
-        const data = await (window as any).ON_DUTY_DATA.get('userData');
+      if (typeof window !== 'undefined' && (window as any).ONDUTY_KV) {
+        const data = await (window as any).ONDUTY_KV.get('userData');
         if (data) {
           return JSON.parse(data);
         }
@@ -100,8 +96,8 @@ export class StorageManager {
 
   private async saveToKVStorage(data: UserData): Promise<void> {
     try {
-      if (typeof window !== 'undefined' && (window as any).ON_DUTY_DATA) {
-        await (window as any).ON_DUTY_DATA.put('userData', JSON.stringify(data));
+      if (typeof window !== 'undefined' && (window as any).ONDUTY_KV) {
+        await (window as any).ONDUTY_KV.put('userData', JSON.stringify(data));
       }
     } catch (error) {
       console.error('Failed to save data to KV storage:', error);
@@ -370,36 +366,6 @@ export class StorageManager {
     state.versionHistory.unshift(version);
     await this.setCurrentUserState(state);
   }
-
-  async getVersionHistory(scheduleId: string): Promise<VersionHistory[]> {
-    await this.initialize();
-    return this.getCurrentUserState().versionHistory
-      .filter(v => v.scheduleId === scheduleId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }
-
-  async rollbackToVersion(versionId: string): Promise<Schedule | null> {
-    await this.initialize();
-    if (!this.currentUserId) throw new Error('Not authenticated');
-    
-    const state = this.getCurrentUserState();
-    const version = state.versionHistory.find(v => v.id === versionId);
-    if (!version) return null;
-
-    const schedule = JSON.parse(JSON.stringify(version.data));
-    schedule.updatedAt = new Date().toISOString();
-
-    const index = state.schedules.findIndex(s => s.id === schedule.id);
-    if (index !== -1) {
-      state.schedules[index] = schedule;
-      state.currentSchedule = schedule;
-      await this.setCurrentUserState(state);
-    }
-
-    return schedule;
-  }
-
-
 
   async getState(): Promise<AppState> {
     await this.initialize();
