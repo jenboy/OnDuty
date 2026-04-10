@@ -30,6 +30,7 @@
 - 支持离线使用（本地存储）
 - 完整的 TypeScript 类型支持
 - 静态部署，可托管到 Cloudflare Pages
+- 响应式状态管理（使用 Zustand）
 
 ## 🚀 快速开始
 
@@ -119,7 +120,9 @@ OnDuty/
 │   │   ├── ScheduleGenerator.tsx # 排班生成
 │   │   └── CalendarView.tsx      # 日历视图
 │   ├── hooks/            # React Hooks
-│   │   └── useStorage.ts # 存储 Hook
+│   │   └── useStorage.ts # 存储 Hook（已弃用，使用 Zustand）
+│   ├── store/            # Zustand 状态管理
+│   │   └── useStore.ts   # 全局状态存储
 │   ├── lib/              # 工具库
 │   │   ├── utils.ts      # 工具函数（农历转换、节气计算）
 │   │   ├── scheduler.ts  # 排班引擎
@@ -140,7 +143,7 @@ OnDuty/
 - **前端框架**：Next.js 14
 - **UI 框架**：Tailwind CSS v3
 - **语言**：TypeScript
-- **状态管理**：React useState
+- **状态管理**：Zustand
 - **存储方案**：localStorage（本地存储）
 - **图标库**：Lucide React
 - **导出库**：
@@ -177,6 +180,7 @@ MIT License
 - **多格式导出**：满足不同场景需求
 - **响应式设计**：适配各种设备屏幕
 - **离线使用**：无网络环境也能正常工作
+- **响应式状态管理**：使用 Zustand 实现高效的状态管理
 
 ## 🎯 适用场景
 
