@@ -110,7 +110,7 @@ export class ExportManager {
       const calendarData = [];
       
       // 星期标题
-      calendarData.push(['日', '一', '二', '三', '四', '五', '六']);
+      calendarData.push(['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']);
       
       // 日历数据
       let day = 1;
@@ -139,40 +139,100 @@ export class ExportManager {
       
       // 添加标题
       if (options.includeHeader) {
-        XLSX.utils.sheet_add_aoa(ws, [[this.schedule.name]], { origin: 'A1' });
-        XLSX.utils.sheet_add_aoa(ws, [[`${year}年${monthName}值班表`]], { origin: 'A2' });
+        XLSX.utils.sheet_add_aoa(ws, [[`${year}年 ${monthName} 值日表`]], { origin: 'A1' });
         // 合并标题单元格
         ws['!merges'] = [
           { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
-          { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
         ];
       }
       
       // 添加日历数据
-      XLSX.utils.sheet_add_aoa(ws, calendarData, { origin: options.includeHeader ? 'A3' : 'A1' });
+      XLSX.utils.sheet_add_aoa(ws, calendarData, { origin: options.includeHeader ? 'A2' : 'A1' });
       
       // 设置列宽和行高
-      const colWidths = Array(7).fill({ wch: 18 });
+      const colWidths = Array(7).fill({ wch: 15 });
       ws['!cols'] = colWidths;
       
       // 设置行高
       const rowHeights = [];
-      for (let i = 0; i < calendarData.length + (options.includeHeader ? 2 : 0); i++) {
-        rowHeights.push({ hpx: 70 });
+      // 标题行
+      if (options.includeHeader) {
+        rowHeights.push({ hpx: 40 });
+      }
+      // 星期标题行
+      rowHeights.push({ hpx: 30 });
+      // 日历行
+      const weekCount = Math.ceil((firstDay + daysInMonth) / 7);
+      for (let i = 0; i < weekCount; i++) {
+        rowHeights.push({ hpx: 80 });
       }
       ws['!rows'] = rowHeights;
       
       // 设置单元格样式
-      const headerStyle = {
-        font: { bold: true, sz: 14 },
-        alignment: { horizontal: 'center', vertical: 'center' },
-        fill: { bgColor: { rgb: 'E3F2FD' } }
-      };
+      // 标题样式
+      if (options.includeHeader) {
+        const titleCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
+        ws[titleCell] = {
+          v: `${year}年 ${monthName} 值日表`,
+          t: 's',
+          s: {
+            font: { bold: true, sz: 16, color: { rgb: '4285F4' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            fill: { fgColor: { rgb: 'E3F2FD' } }
+          }
+        };
+      }
       
-      const dayStyle = {
-        alignment: { horizontal: 'center', vertical: 'center' },
-        font: { sz: 12 }
-      };
+      // 星期标题样式
+      const weekHeaderRow = options.includeHeader ? 1 : 0;
+      for (let c = 0; c < 7; c++) {
+        const cell = XLSX.utils.encode_cell({ r: weekHeaderRow, c: c });
+        ws[cell] = {
+          v: calendarData[0][c],
+          t: 's',
+          s: {
+            font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            fill: { fgColor: { rgb: '3B82F6' } }
+          }
+        };
+      }
+      
+      // 日历单元格样式
+      const calendarStartRow = options.includeHeader ? 2 : 1;
+      let dayCounter = 1;
+      for (let i = 0; i < 6; i++) {
+        const row = calendarStartRow + i;
+        for (let j = 0; j < 7; j++) {
+          if ((i === 0 && j < firstDay) || dayCounter > daysInMonth) {
+            continue;
+          }
+          const cell = XLSX.utils.encode_cell({ r: row, c: j });
+          const dateStr = `${year}-${month}-${String(dayCounter).padStart(2, '0')}`;
+          const entry = monthEntries.find(e => e.date === dateStr);
+          if (entry) {
+            ws[cell] = {
+              v: `${dayCounter}\n${entry.personName}`,
+              t: 's',
+              s: {
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                font: { sz: 12 }
+              }
+            };
+          } else {
+            ws[cell] = {
+              v: dayCounter.toString(),
+              t: 'n',
+              s: {
+                alignment: { horizontal: 'center', vertical: 'center' },
+                font: { sz: 12 }
+              }
+            };
+          }
+          dayCounter++;
+        }
+        if (dayCounter > daysInMonth) break;
+      }
       
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
     });

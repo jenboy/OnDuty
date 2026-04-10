@@ -133,16 +133,41 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
     if (!calendarRef.current) return;
     
     try {
-      const canvas = await html2canvas(calendarRef.current, {
+      // 创建一个临时容器，复制日历内容
+      const tempContainer = document.createElement('div');
+      tempContainer.style.width = '100%';
+      tempContainer.style.maxWidth = '800px';
+      tempContainer.style.margin = '0 auto';
+      tempContainer.style.padding = '20px';
+      tempContainer.style.backgroundColor = '#ffffff';
+      
+      // 复制日历内容
+      const calendarClone = calendarRef.current.cloneNode(true) as HTMLElement;
+      tempContainer.appendChild(calendarClone);
+      
+      // 添加到文档中
+      document.body.appendChild(tempContainer);
+      
+      // 导出图片
+      const canvas = await html2canvas(tempContainer, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
+        logging: false,
+        removeContainer: false,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: 0,
       });
       
+      // 保存图片
       const link = document.createElement('a');
       link.download = `calendar.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
+      
+      // 清理临时容器
+      document.body.removeChild(tempContainer);
     } catch (error) {
       console.error('导出图片失败:', error);
     }
