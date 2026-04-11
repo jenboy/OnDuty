@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Person, ScheduleConfig, Schedule, RotationStrategy } from '@/types';
 import { SchedulerEngine } from '@/lib/scheduler';
 import { generateId, formatDate, getMonthEndDate, getWeekOfMonth, getMonthName } from '@/lib/utils';
-import { Settings, Play, AlertCircle, Wand2, X } from 'lucide-react';
+import { Calendar, Settings, Play, AlertCircle, Wand2, X } from 'lucide-react';
 
 interface ScheduleGeneratorProps {
   persons: Person[];
