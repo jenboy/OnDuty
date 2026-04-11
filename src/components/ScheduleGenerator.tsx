@@ -166,14 +166,9 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
                 onChange={(e) => {
                   const newStartDate = e.target.value;
                   const startDateObj = new Date(newStartDate);
-                  const endDateObj = new Date(config.endDate);
-                  
-                  // 确保开始日期不大于结束日期
-                  let newEndDate = config.endDate;
-                  if (startDateObj > endDateObj) {
-                    const monthEndDate = getMonthEndDate(startDateObj);
-                    newEndDate = formatDate(monthEndDate);
-                  }
+                  // 无论选择什么开始日期，结束日期都默认选择当月最后一天
+                  const monthEndDate = getMonthEndDate(startDateObj);
+                  const newEndDate = formatDate(monthEndDate);
                   
                   setConfig({ ...config, startDate: newStartDate, endDate: newEndDate });
                 }}
