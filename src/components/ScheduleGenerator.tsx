@@ -159,33 +159,39 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
             <label className="block text-sm font-medium text-gray-700 mb-1">
               开始日期 *
             </label>
-            <input
-              type="date"
-              value={config.startDate}
-              onChange={(e) => {
-                const newStartDate = e.target.value;
-                const startDateObj = new Date(newStartDate);
-                const monthEndDate = getMonthEndDate(startDateObj);
-                const newEndDate = formatDate(monthEndDate);
-                setConfig({ ...config, startDate: newStartDate, endDate: newEndDate });
-              }}
-              onKeyDown={(e) => e.preventDefault()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div className="relative w-full">
+              <input
+                type="date"
+                value={config.startDate}
+                onChange={(e) => {
+                  const newStartDate = e.target.value;
+                  const startDateObj = new Date(newStartDate);
+                  const monthEndDate = getMonthEndDate(startDateObj);
+                  const newEndDate = formatDate(monthEndDate);
+                  setConfig({ ...config, startDate: newStartDate, endDate: newEndDate });
+                }}
+                onKeyDown={(e) => e.preventDefault()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                style={{ appearance: 'none', WebkitAppearance: 'none' }}
+              />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               结束日期 *
             </label>
-            <input
-              type="date"
-              value={config.endDate}
-              onChange={(e) =>
-                setConfig({ ...config, endDate: e.target.value })
-              }
-              onKeyDown={(e) => e.preventDefault()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div className="relative w-full">
+              <input
+                type="date"
+                value={config.endDate}
+                onChange={(e) =>
+                  setConfig({ ...config, endDate: e.target.value })
+                }
+                onKeyDown={(e) => e.preventDefault()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                style={{ appearance: 'none', WebkitAppearance: 'none' }}
+              />
+            </div>
           </div>
         </div>
 
