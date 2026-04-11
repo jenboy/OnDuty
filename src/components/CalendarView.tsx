@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Schedule, ScheduleEntry, Person, ExportOptions } from '@/types';
-import { ChevronLeft, ChevronRight, Calendar, BarChart3, TrendingUp, Download, FileSpreadsheet, FileType, X } from 'lucide-react';
+import { Schedule, ScheduleEntry, Person } from '@/types';
+import { ChevronLeft, ChevronRight, Calendar, BarChart3, Download, FileSpreadsheet, X } from 'lucide-react';
 import { getMonthName, getDaysInMonth, getLunarDate } from '@/lib';
 import { ExportManager } from '@/lib/export';
 import html2canvas from 'html2canvas';
@@ -48,28 +48,32 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDayOfMonth = new Date(year, month, 1).getDay();
 
-  const monthEntries = useMemo(() => {
-    const entries = new Map<string, ScheduleEntry>();
+  // 获取当前月份的所有排班条目
+  const monthScheduleEntries = useMemo(() => {
+    const entries: ScheduleEntry[] = [];
     schedules.forEach((schedule) => {
       schedule.entries.forEach((entry) => {
         const entryDate = new Date(entry.date);
         if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
-          entries.set(entry.date, entry);
+          entries.push(entry);
         }
       });
     });
     return entries;
   }, [schedules, year, month]);
 
+  const monthEntries = useMemo(() => {
+    const entries = new Map<string, ScheduleEntry>();
+    monthScheduleEntries.forEach((entry) => {
+      entries.set(entry.date, entry);
+    });
+    return entries;
+  }, [monthScheduleEntries]);
+
   const monthlyStats = useMemo((): MonthlyStats[] => {
     const statsMap = new Map<string, number>();
-    schedules.forEach((schedule) => {
-      schedule.entries.forEach((entry) => {
-        const entryDate = new Date(entry.date);
-        if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
-          statsMap.set(entry.personId, (statsMap.get(entry.personId) || 0) + 1);
-        }
-      });
+    monthScheduleEntries.forEach((entry) => {
+      statsMap.set(entry.personId, (statsMap.get(entry.personId) || 0) + 1);
     });
 
     const stats: MonthlyStats[] = [];
@@ -86,7 +90,7 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
     });
 
     return stats.sort((a, b) => b.count - a.count);
-  }, [schedules, year, month, persons]);
+  }, [monthScheduleEntries, persons]);
 
   const personColors = useMemo(() => {
     const colors = new Map<string, string>();
@@ -112,7 +116,7 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
     if (schedules.length === 0) return;
 
     // 使用第一个排班表作为导出基础
-    const exporter = new ExportManager(schedules[0], persons);
+    const exporter = new ExportManager(schedules[0]);
 
     switch (exportOptions.format) {
       case 'excel':
@@ -271,13 +275,7 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
               return (
                 <div
                   key={day}
-                  className={`aspect-square p-2 rounded-lg border transition-all ${
-                    isToday
-                      ? 'border-blue-500 bg-blue-50'
-                      : isWeekend
-                      ? 'border-gray-100 bg-gray-50'
-                      : 'border-gray-200 bg-white hover:border-blue-300'
-                  }`}
+                  className={`aspect-square p-2 rounded-lg border transition-all ${isToday ? 'border-blue-500 bg-blue-50' : isWeekend ? 'border-gray-100 bg-gray-50' : 'border-gray-200 bg-white hover:border-blue-300'}`}
                 >
                   <div className="flex flex-col h-full">
                     <span

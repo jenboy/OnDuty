@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Person, ScheduleConfig, Schedule, RotationStrategy } from '@/types';
 import { SchedulerEngine } from '@/lib/scheduler';
 import { generateId, formatDate, getMonthEndDate, getWeekOfMonth, getMonthName } from '@/lib/utils';
-import { Calendar, Settings, Play, AlertCircle, Wand2, X } from 'lucide-react';
+import { Settings, Play, AlertCircle, Wand2, X } from 'lucide-react';
 
 interface ScheduleGeneratorProps {
   persons: Person[];
@@ -234,11 +234,7 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
                 setNameFormat('monthly');
                 setScheduleName(generateScheduleName(config.startDate, config.endDate, 'monthly'));
               }}
-              className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
-                nameFormat === 'monthly'
-                  ? 'bg-blue-100 border-blue-300 text-blue-700'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
+              className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${nameFormat === 'monthly' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}
             >
               <div className="font-medium">月度格式</div>
               <div className="text-xs mt-1 opacity-75">2026年3月值日表</div>
@@ -249,11 +245,7 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
                 setNameFormat('weekly');
                 setScheduleName(generateScheduleName(config.startDate, config.endDate, 'weekly'));
               }}
-              className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
-                nameFormat === 'weekly'
-                  ? 'bg-blue-100 border-blue-300 text-blue-700'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
+              className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${nameFormat === 'weekly' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}
             >
               <div className="font-medium">周度格式</div>
               <div className="text-xs mt-1 opacity-75">2026年3月第3周值日表</div>

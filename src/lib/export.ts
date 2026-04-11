@@ -1,22 +1,17 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { Schedule, ScheduleEntry, ExportOptions, Person } from '@/types';
+import { Schedule, ScheduleEntry, ExportOptions } from '@/types';
 import { getMonthName } from './utils';
 
 export class ExportManager {
   private schedule: Schedule;
-  private persons: Person[];
 
-  constructor(schedule: Schedule, persons: Person[]) {
+  constructor(schedule: Schedule) {
     this.schedule = schedule;
-    this.persons = persons;
   }
 
-  // 导出为 Excel (优化布局)
-  exportToExcel(options: ExportOptions): void {
-    const { entries } = this.schedule;
-
-    // 按月份分组数据
+  // 按月份分组数据
+  private groupEntriesByMonth(entries: ScheduleEntry[]): Map<string, ScheduleEntry[]> {
     const monthlyData = new Map<string, ScheduleEntry[]>();
     entries.forEach(entry => {
       const date = new Date(entry.date);
@@ -26,6 +21,15 @@ export class ExportManager {
       }
       monthlyData.get(monthKey)?.push(entry);
     });
+    return monthlyData;
+  }
+
+  // 导出为 Excel (优化布局)
+  exportToExcel(options: ExportOptions): void {
+    const { entries } = this.schedule;
+
+    // 按月份分组数据
+    const monthlyData = this.groupEntriesByMonth(entries);
 
     // 创建工作簿
     const wb = XLSX.utils.book_new();
@@ -145,15 +149,7 @@ export class ExportManager {
     const { entries } = this.schedule;
 
     // 按月份分组数据
-    const monthlyData = new Map<string, ScheduleEntry[]>();
-    entries.forEach(entry => {
-      const date = new Date(entry.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      if (!monthlyData.has(monthKey)) {
-        monthlyData.set(monthKey, []);
-      }
-      monthlyData.get(monthKey)?.push(entry);
-    });
+    const monthlyData = this.groupEntriesByMonth(entries);
 
     let html = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' 
@@ -260,45 +256,5 @@ export class ExportManager {
 
 
 
-  // 生成月度统计
-  generateMonthlyStats(): { month: string; personStats: { name: string; count: number }[] }[] {
-    const stats: Map<string, Map<string, number>> = new Map();
 
-    this.schedule.entries.forEach(entry => {
-      const date = new Date(entry.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-
-      if (!stats.has(monthKey)) {
-        stats.set(monthKey, new Map());
-      }
-
-      const monthStats = stats.get(monthKey)!;
-      const current = monthStats.get(entry.personName) || 0;
-      monthStats.set(entry.personName, current + 1);
-    });
-
-    return Array.from(stats.entries()).map(([month, personMap]) => ({
-      month,
-      personStats: Array.from(personMap.entries()).map(([name, count]) => ({
-        name,
-        count,
-      })),
-    }));
-  }
-
-  private getPersonDepartment(personId: string): string {
-    const person = this.persons.find(p => p.id === personId);
-    return person?.department || '';
-  }
-
-  private hexToRgb(hex: string): [number, number, number] {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result
-      ? [
-          parseInt(result[1], 16),
-          parseInt(result[2], 16),
-          parseInt(result[3], 16),
-        ]
-      : [59, 130, 246];
-  }
 }

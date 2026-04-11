@@ -228,12 +228,7 @@ export function PersonManager({
                     {WEEKDAYS.map((day) => (
                       <label
                         key={day.value}
-                        className={cn(
-                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border cursor-pointer transition-all',
-                          formData.excludedDays?.includes(day.value)
-                            ? 'bg-red-100 border-red-300 text-red-700'
-                            : 'bg-white border-gray-200 hover:border-gray-300'
-                        )}
+                        className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border cursor-pointer transition-all', formData.excludedDays?.includes(day.value) ? 'bg-red-100 border-red-300 text-red-700' : 'bg-white border-gray-200 hover:border-gray-300')}
                       >
                         <input
                           type="checkbox"
