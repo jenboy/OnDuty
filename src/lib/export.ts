@@ -44,7 +44,7 @@ export class ExportManager {
       const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
       const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1).getDay();
       
-      // 创建工作表
+      // 创建空工作表
       const ws = XLSX.utils.aoa_to_sheet([]);
       
       // 设置列宽
@@ -53,15 +53,23 @@ export class ExportManager {
       
       // 设置行高
       const rowHeights = [];
-      
-      // 添加标题
-      let currentRow = 0;
       if (options.includeHeader) {
-        // 标题行
+        rowHeights.push({ hpx: 40 }); // 标题行
+      }
+      rowHeights.push({ hpx: 30 }); // 星期标题行
+      for (let i = 0; i < 6; i++) {
+        rowHeights.push({ hpx: 80 }); // 日历行
+      }
+      // 确保行数与rowHeights数组长度一致
+      ws['!rows'] = rowHeights;
+      
+      // 合并标题行
+      if (options.includeHeader) {
         ws['!merges'] = [
-          { s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 6 } }
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }
         ];
-        const titleCell = XLSX.utils.encode_cell({ r: currentRow, c: 0 });
+        // 设置标题单元格样式
+        const titleCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
         ws[titleCell] = {
           v: `${year}年 ${monthName} 值日表`,
           t: 's',
@@ -71,14 +79,13 @@ export class ExportManager {
             fill: { fgColor: { rgb: 'E3F2FD' } }
           }
         };
-        rowHeights.push({ hpx: 40 });
-        currentRow++;
       }
       
-      // 添加星期标题
+      // 设置星期标题
       const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+      const weekHeaderRow = options.includeHeader ? 1 : 0;
       for (let c = 0; c < 7; c++) {
-        const cell = XLSX.utils.encode_cell({ r: currentRow, c: c });
+        const cell = XLSX.utils.encode_cell({ r: weekHeaderRow, c: c });
         ws[cell] = {
           v: weekDays[c],
           t: 's',
@@ -89,27 +96,30 @@ export class ExportManager {
           }
         };
       }
-      rowHeights.push({ hpx: 30 });
-      currentRow++;
       
-      // 添加日历数据
-      let day = 1;
+      // 设置日历数据和样式（只遍历一次）
+      let startRow = options.includeHeader ? 2 : 1;
+      let currentDay = 1;
       for (let i = 0; i < 6; i++) {
         for (let j = 0; j < 7; j++) {
-          if ((i === 0 && j < firstDay) || day > daysInMonth) {
+          if ((i === 0 && j < firstDay) || currentDay > daysInMonth) {
             // 空单元格
-            const cell = XLSX.utils.encode_cell({ r: currentRow, c: j });
+            const cell = XLSX.utils.encode_cell({ r: startRow + i, c: j });
             ws[cell] = {
               v: '',
-              t: 's'
+              t: 's',
+              s: {
+                alignment: { horizontal: 'center', vertical: 'center' },
+                font: { sz: 12 }
+              }
             };
           } else {
-            const dateStr = `${year}-${month}-${String(day).padStart(2, '0')}`;
+            const cell = XLSX.utils.encode_cell({ r: startRow + i, c: j });
+            const dateStr = `${year}-${month}-${String(currentDay).padStart(2, '0')}`;
             const entry = monthEntries.find(e => e.date === dateStr);
-            const cell = XLSX.utils.encode_cell({ r: currentRow, c: j });
             if (entry) {
               ws[cell] = {
-                v: `${day}\n${entry.personName}`,
+                v: `${currentDay}\n${entry.personName}`,
                 t: 's',
                 s: {
                   alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
@@ -118,23 +128,20 @@ export class ExportManager {
               };
             } else {
               ws[cell] = {
-                v: day.toString(),
-                t: 'n',
+                v: String(currentDay),
+                t: 's',
                 s: {
                   alignment: { horizontal: 'center', vertical: 'center' },
                   font: { sz: 12 }
                 }
               };
             }
-            day++;
+            currentDay++;
           }
         }
-        rowHeights.push({ hpx: 80 });
-        currentRow++;
-        if (day > daysInMonth) break;
+        if (currentDay > daysInMonth) break;
       }
       
-      ws['!rows'] = rowHeights;
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
     });
 
@@ -144,7 +151,7 @@ export class ExportManager {
     saveAs(blob, `${this.schedule.name}.xlsx`);
   }
 
-  // 导出为 Word (日历排版)
+  // 导出为 Word (优化排版)
   exportToWord(options: ExportOptions): void {
     const { entries } = this.schedule;
 
@@ -159,19 +166,76 @@ export class ExportManager {
         <meta charset="utf-8">
         <title>${this.schedule.name}</title>
         <style>
-          body { font-family: "Microsoft YaHei", SimSun, sans-serif; }
-          table { border-collapse: collapse; width: 100%; margin-bottom: 40px; }
-          th, td { border: 1px solid #000; padding: 12px; text-align: center; vertical-align: top; }
-          th { background-color: ${options.primaryColor}; color: white; font-weight: bold; }
-          .title { font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 15px; }
-          .subtitle { font-size: 14px; text-align: center; margin-bottom: 30px; color: #666; }
-          .month-title { font-size: 16px; font-weight: bold; text-align: center; margin: 20px 0 10px 0; }
-          .calendar-cell { height: 80px; }
-          .day-number { font-weight: bold; margin-bottom: 5px; }
-          .duty-person { font-size: 12px; }
+          body { 
+            font-family: "Microsoft YaHei", SimSun, sans-serif; 
+            margin: 20px;
+            line-height: 1.5;
+          }
+          .container { 
+            max-width: 1000px; 
+            margin: 0 auto;
+          }
+          table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin: 20px 0 40px 0;
+            page-break-inside: avoid;
+          }
+          th, td { 
+            border: 1px solid #000; 
+            padding: 15px; 
+            text-align: center; 
+            vertical-align: middle;
+          }
+          th { 
+            background-color: ${options.primaryColor}; 
+            color: white; 
+            font-weight: bold;
+            font-size: 14px;
+          }
+          .title { 
+            font-size: 24px; 
+            font-weight: bold; 
+            text-align: center; 
+            margin: 30px 0 10px 0;
+            color: #333;
+          }
+          .subtitle { 
+            font-size: 14px; 
+            text-align: center; 
+            margin: 0 0 30px 0; 
+            color: #666;
+          }
+          .month-title { 
+            font-size: 18px; 
+            font-weight: bold; 
+            text-align: center; 
+            margin: 40px 0 15px 0;
+            color: #333;
+          }
+          .calendar-cell { 
+            height: 100px; 
+            vertical-align: middle;
+          }
+          .day-number { 
+            font-weight: bold; 
+            margin-bottom: 8px;
+            font-size: 16px;
+          }
+          .duty-person { 
+            font-size: 14px;
+            line-height: 1.3;
+          }
+          .footer { 
+            text-align: center; 
+            margin-top: 50px;
+            font-size: 12px;
+            color: #666;
+          }
         </style>
       </head>
       <body>
+        <div class="container">
     `;
 
     if (options.includeHeader) {
@@ -207,34 +271,34 @@ export class ExportManager {
       `;
       
       // 日历数据
-      let day = 1;
+      let currentDay = 1;
       for (let i = 0; i < 6; i++) {
         html += '<tr>';
         for (let j = 0; j < 7; j++) {
-          if ((i === 0 && j < firstDay) || day > daysInMonth) {
+          if ((i === 0 && j < firstDay) || currentDay > daysInMonth) {
             html += '<td class="calendar-cell"></td>';
           } else {
-            const dateStr = `${year}-${month}-${String(day).padStart(2, '0')}`;
+            const dateStr = `${year}-${month}-${String(currentDay).padStart(2, '0')}`;
             const entry = monthEntries.find(e => e.date === dateStr);
             if (entry) {
               html += `
                 <td class="calendar-cell">
-                  <div class="day-number">${day}</div>
+                  <div class="day-number">${currentDay}</div>
                   <div class="duty-person">${entry.personName}</div>
                 </td>
               `;
             } else {
               html += `
                 <td class="calendar-cell">
-                  <div class="day-number">${day}</div>
+                  <div class="day-number">${currentDay}</div>
                 </td>
               `;
             }
-            day++;
+            currentDay++;
           }
         }
         html += '</tr>';
-        if (day > daysInMonth) break;
+        if (currentDay > daysInMonth) break;
       }
       
       html += `
@@ -243,7 +307,12 @@ export class ExportManager {
       `;
     });
 
+    if (options.includeFooter) {
+      html += `<div class="footer">生成时间: ${new Date().toLocaleString()}</div>`;
+    }
+
     html += `
+        </div>
       </body>
       </html>
     `;
