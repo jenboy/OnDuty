@@ -160,33 +160,26 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
               开始日期 *
             </label>
             <div className="relative w-full">
-              <div 
-                className="absolute inset-0 rounded-lg cursor-pointer z-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const input = e.currentTarget.nextElementSibling as HTMLInputElement;
-                  input.focus();
-                  input.click();
-                }}
-              />
               <input
                 type="date"
                 value={config.startDate}
                 onChange={(e) => {
                   const newStartDate = e.target.value;
                   const startDateObj = new Date(newStartDate);
-                  const monthEndDate = getMonthEndDate(startDateObj);
-                  const newEndDate = formatDate(monthEndDate);
+                  const endDateObj = new Date(config.endDate);
+                  
+                  // 确保开始日期不大于结束日期
+                  let newEndDate = config.endDate;
+                  if (startDateObj > endDateObj) {
+                    const monthEndDate = getMonthEndDate(startDateObj);
+                    newEndDate = formatDate(monthEndDate);
+                  }
+                  
                   setConfig({ ...config, startDate: newStartDate, endDate: newEndDate });
                 }}
                 onKeyDown={(e) => e.preventDefault()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
-                style={{ 
-                  appearance: 'none', 
-                  WebkitAppearance: 'none',
-                  position: 'relative',
-                  zIndex: 1
-                }}
+                min={formatDate(today)}
               />
             </div>
           </div>
@@ -195,29 +188,26 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
               结束日期 *
             </label>
             <div className="relative w-full">
-              <div 
-                className="absolute inset-0 rounded-lg cursor-pointer z-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const input = e.currentTarget.nextElementSibling as HTMLInputElement;
-                  input.focus();
-                  input.click();
-                }}
-              />
               <input
                 type="date"
                 value={config.endDate}
-                onChange={(e) =>
-                  setConfig({ ...config, endDate: e.target.value })
-                }
+                onChange={(e) => {
+                  const newEndDate = e.target.value;
+                  const startDateObj = new Date(config.startDate);
+                  const endDateObj = new Date(newEndDate);
+                  
+                  // 确保结束日期不小于开始日期
+                  if (endDateObj < startDateObj) {
+                    // 自动调整结束日期为开始日期
+                    setConfig({ ...config, endDate: config.startDate });
+                    return;
+                  }
+                  
+                  setConfig({ ...config, endDate: newEndDate });
+                }}
                 onKeyDown={(e) => e.preventDefault()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
-                style={{ 
-                  appearance: 'none', 
-                  WebkitAppearance: 'none',
-                  position: 'relative',
-                  zIndex: 1
-                }}
+                min={config.startDate}
               />
             </div>
           </div>
