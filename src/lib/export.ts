@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { Schedule, ScheduleEntry, ExportOptions } from '@/types';
-import { getMonthName } from './utils';
+import { getMonthName, getLunarDate } from './utils';
 
 export class ExportManager {
   private schedule: Schedule;
@@ -56,7 +56,7 @@ export class ExportManager {
       const calendarRows = Math.ceil((daysInMonth + firstDay) / 7);
       
       // 计算需要的总行数
-      const totalRows = (options.includeHeader ? 1 : 0) + 1 + calendarRows; // 标题行(可选) + 星期标题行 + 日历行
+      const totalRows = (options.includeHeader ? 1 : 0) + 1 + calendarRows * 2; // 标题行(可选) + 星期标题行 + 日历行*2
       
       // 创建工作表数据数组
       const data = Array(totalRows).fill(null).map(() => Array(7).fill(''));
@@ -75,7 +75,8 @@ export class ExportManager {
       }
       rowHeights.push({ hpx: 30 }); // 星期标题行
       for (let i = 0; i < calendarRows; i++) {
-        rowHeights.push({ hpx: 80 }); // 日历行
+        rowHeights.push({ hpx: 40 }); // 日期和农历行
+        rowHeights.push({ hpx: 40 }); // 人员名字行
       }
       // 确保行数与rowHeights数组长度一致
       ws['!rows'] = rowHeights;
@@ -121,8 +122,21 @@ export class ExportManager {
         for (let j = 0; j < 7; j++) {
           if ((i === 0 && j < firstDay) || currentDay > daysInMonth) {
             // 空单元格
-            const cell = XLSX.utils.encode_cell({ r: startRow + i, c: j });
-            ws[cell] = {
+            const dateCell = XLSX.utils.encode_cell({ r: startRow + i * 2, c: j });
+            const nameCell = XLSX.utils.encode_cell({ r: startRow + i * 2 + 1, c: j });
+            
+            // 日期行
+            ws[dateCell] = {
+              v: '',
+              t: 's',
+              s: {
+                alignment: { horizontal: 'center', vertical: 'center' },
+                font: { sz: 12 }
+              }
+            };
+            
+            // 名字行
+            ws[nameCell] = {
               v: '',
               t: 's',
               s: {
@@ -131,21 +145,36 @@ export class ExportManager {
               }
             };
           } else {
-            const cell = XLSX.utils.encode_cell({ r: startRow + i, c: j });
+            const dateCell = XLSX.utils.encode_cell({ r: startRow + i * 2, c: j });
+            const nameCell = XLSX.utils.encode_cell({ r: startRow + i * 2 + 1, c: j });
             const dateStr = `${year}-${month}-${String(currentDay).padStart(2, '0')}`;
             const entry = monthEntriesMap.get(dateStr);
+            const date = new Date(parseInt(year), parseInt(month) - 1, currentDay);
+            const lunarDate = getLunarDate(date);
+            
+            // 日期和农历行
+            ws[dateCell] = {
+              v: `${currentDay}\n${lunarDate}`,
+              t: 's',
+              s: {
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                font: { sz: 12 }
+              }
+            };
+            
+            // 人员名字行
             if (entry) {
-              ws[cell] = {
-                v: `${currentDay}\n${entry.personName}`,
+              ws[nameCell] = {
+                v: entry.personName,
                 t: 's',
                 s: {
-                  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-                  font: { sz: 12 }
+                  alignment: { horizontal: 'center', vertical: 'center' },
+                  font: { sz: 12, bold: true }
                 }
               };
             } else {
-              ws[cell] = {
-                v: String(currentDay),
+              ws[nameCell] = {
+                v: '',
                 t: 's',
                 s: {
                   alignment: { horizontal: 'center', vertical: 'center' },
@@ -153,6 +182,7 @@ export class ExportManager {
                 }
               };
             }
+            
             currentDay++;
           }
         }
