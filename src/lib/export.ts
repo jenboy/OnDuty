@@ -24,12 +24,53 @@ export class ExportManager {
     return monthlyData;
   }
 
+  // 获取名言
+  private async getHitokoto(): Promise<{ content: string; from: string }> {
+    try {
+      // 添加超时控制，5秒后中止请求
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch('https://api.baiwumm.com/api/hitokoto', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch hitokoto: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      const data = result.data || {};
+      
+      if (!data.content) {
+        throw new Error('No content found in API response');
+      }
+      
+      return {
+        content: data.content,
+        from: data.from || '未知来源'
+      };
+    } catch (error) {
+      console.error('Error fetching hitokoto:', error);
+      // 返回默认值
+      return {
+        content: '千万丈的大厦总要有片奠基石，最初的爱好无可替代。',
+        from: '王小波「我的精神家园」'
+      };
+    }
+  }
+
   // 导出为 Excel (优化布局)
-  exportToExcel(options: ExportOptions): void {
+  async exportToExcel(options: ExportOptions): Promise<void> {
     const { entries } = this.schedule;
 
     // 按月份分组数据
     const monthlyData = this.groupEntriesByMonth(entries);
+
+    // 获取名言
+    const hitokoto = await this.getHitokoto();
 
     // 创建工作簿
     const wb = XLSX.utils.book_new();
@@ -56,7 +97,7 @@ export class ExportManager {
       const calendarRows = Math.ceil((daysInMonth + firstDay) / 7);
       
       // 计算需要的总行数
-      const totalRows = (options.includeHeader ? 1 : 0) + 1 + calendarRows * 2; // 标题行(可选) + 星期标题行 + 日历行*2
+      const totalRows = (options.includeHeader ? 1 : 0) + 1 + calendarRows * 2 + 3; // 标题行(可选) + 星期标题行 + 日历行*2 + 底部引用
       
       // 创建工作表数据数组
       const data = Array(totalRows).fill(null).map(() => Array(7).fill(''));
@@ -78,6 +119,10 @@ export class ExportManager {
         rowHeights.push({ hpx: 40 }); // 日期和农历行
         rowHeights.push({ hpx: 40 }); // 人员名字行
       }
+      // 底部引用行
+      rowHeights.push({ hpx: 20 });
+      rowHeights.push({ hpx: 20 });
+      rowHeights.push({ hpx: 20 });
       // 确保行数与rowHeights数组长度一致
       ws['!rows'] = rowHeights;
       
@@ -92,7 +137,7 @@ export class ExportManager {
           v: `${year}年 ${monthName} 值日表`,
           t: 's',
           s: {
-            font: { bold: true, sz: 16, color: { rgb: '4285F4' } },
+            font: { bold: true, sz: 16, color: { rgb: '000000' } },
             alignment: { horizontal: 'center', vertical: 'center' },
             fill: { fgColor: { rgb: 'E3F2FD' } }
           }
@@ -110,7 +155,7 @@ export class ExportManager {
           s: {
             font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } },
             alignment: { horizontal: 'center', vertical: 'center' },
-            fill: { fgColor: { rgb: '3B82F6' } }
+            fill: { fgColor: { rgb: '3498DB' } }
           }
         };
       }
@@ -189,6 +234,28 @@ export class ExportManager {
         if (currentDay > daysInMonth) break;
       }
       
+      // 添加底部引用
+      const footerRow = startRow + calendarRows * 2;
+      const footerCell = XLSX.utils.encode_cell({ r: footerRow + 1, c: 0 });
+      ws[footerCell] = {
+        v: hitokoto.content,
+        t: 's',
+        s: {
+          font: { sz: 12, color: { rgb: '666666' } },
+          alignment: { horizontal: 'left', vertical: 'center' }
+        }
+      };
+      
+      const authorCell = XLSX.utils.encode_cell({ r: footerRow + 2, c: 0 });
+      ws[authorCell] = {
+        v: `—— ${hitokoto.from}`,
+        t: 's',
+        s: {
+          font: { sz: 12, color: { rgb: '666666' } },
+          alignment: { horizontal: 'right', vertical: 'center' }
+        }
+      };
+      
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
     });
 
@@ -199,7 +266,7 @@ export class ExportManager {
   }
 
   // 导出为 Word (优化排版)
-  exportToWord(options: ExportOptions): void {
+  async exportToWord(options: ExportOptions): Promise<void> {
     const { entries } = this.schedule;
 
     // 按月份分组数据

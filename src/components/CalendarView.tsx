@@ -40,6 +40,7 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
     fontSize: 12,
     primaryColor: '#3b82f6',
   });
+  const [isExporting, setIsExporting] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
 
   const year = currentDate.getFullYear();
@@ -112,26 +113,35 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
     setCurrentDate(new Date());
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (schedules.length === 0) return;
 
-    // 使用第一个排班表作为导出基础
-    const exporter = new ExportManager(schedules[0]);
-
-    switch (exportOptions.format) {
-      case 'excel':
-        exporter.exportToExcel(exportOptions);
-        break;
-      case 'word':
-        exporter.exportToWord(exportOptions);
-        break;
-    }
+    setIsExporting(true);
     
-    setShowExportModal(false);
+    try {
+      // 使用第一个排班表作为导出基础
+      const exporter = new ExportManager(schedules[0]);
+
+      switch (exportOptions.format) {
+        case 'excel':
+          await exporter.exportToExcel(exportOptions);
+          break;
+        case 'word':
+          await exporter.exportToWord(exportOptions);
+          break;
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+    } finally {
+      setIsExporting(false);
+      setShowExportModal(false);
+    }
   };
 
   const handleExportImage = async () => {
     if (!calendarRef.current) return;
+    
+    setIsExporting(true);
     
     try {
       // 创建一个临时容器，复制日历内容
@@ -181,9 +191,10 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
       document.body.removeChild(tempContainer);
     } catch (error) {
       console.error('导出图片失败:', error);
+    } finally {
+      setIsExporting(false);
+      setShowExportModal(false);
     }
-    
-    setShowExportModal(false);
   };
 
   const calendarDays = [];
@@ -441,29 +452,44 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
                       setExportOptions({ ...exportOptions, format: 'excel' });
                       handleExport();
                     }}
-                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 text-gray-600 transition-all"
+                    disabled={isExporting}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${isExporting ? 'border-gray-300 bg-gray-100 cursor-not-allowed' : 'border-gray-200 hover:border-blue-300 text-gray-600'}`}
                   >
-                    <FileSpreadsheet className="w-8 h-8" />
-                    <span className="text-sm font-medium">Excel</span>
+                    {isExporting ? (
+                      <div className="w-8 h-8 border-2 border-blue-300 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="w-8 h-8" />
+                    )}
+                    <span className="text-sm font-medium">{isExporting ? '导出中...' : 'Excel'}</span>
                   </button>
                   <button
                     onClick={() => {
                       setExportOptions({ ...exportOptions, format: 'word' });
                       handleExport();
                     }}
-                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 text-gray-600 transition-all"
+                    disabled={isExporting}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${isExporting ? 'border-gray-300 bg-gray-100 cursor-not-allowed' : 'border-gray-200 hover:border-blue-300 text-gray-600'}`}
                   >
-                    <FileType className="w-8 h-8" />
-                    <span className="text-sm font-medium">Word</span>
+                    {isExporting ? (
+                      <div className="w-8 h-8 border-2 border-blue-300 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FileType className="w-8 h-8" />
+                    )}
+                    <span className="text-sm font-medium">{isExporting ? '导出中...' : 'Word'}</span>
                   </button>
                   <button
                     onClick={handleExportImage}
-                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 text-gray-600 transition-all"
+                    disabled={isExporting}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${isExporting ? 'border-gray-300 bg-gray-100 cursor-not-allowed' : 'border-gray-200 hover:border-blue-300 text-gray-600'}`}
                   >
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-sm font-medium">图片</span>
+                    {isExporting ? (
+                      <div className="w-8 h-8 border-2 border-blue-300 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                    <span className="text-sm font-medium">{isExporting ? '导出中...' : '图片'}</span>
                   </button>
                 </div>
               </div>
