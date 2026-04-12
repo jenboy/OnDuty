@@ -44,8 +44,25 @@ export class ExportManager {
       const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
       const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1).getDay();
       
-      // 创建空工作表
-      const ws = XLSX.utils.aoa_to_sheet([]);
+      // 为了快速匹配，先将当月entries转为Map
+      const monthEntriesMap = new Map<string, ScheduleEntry>();
+      monthEntries.forEach(entry => {
+        monthEntriesMap.set(entry.date, entry);
+      });
+      
+      // 动态计算日历所需行数
+      // 公式逻辑：daysInMonth + firstDay 计算总单元格数
+      // 除以7得到所需周数，Math.ceil确保向上取整
+      const calendarRows = Math.ceil((daysInMonth + firstDay) / 7);
+      
+      // 计算需要的总行数
+      const totalRows = (options.includeHeader ? 1 : 0) + 1 + calendarRows; // 标题行(可选) + 星期标题行 + 日历行
+      
+      // 创建工作表数据数组
+      const data = Array(totalRows).fill(null).map(() => Array(7).fill(''));
+      
+      // 创建工作表
+      const ws = XLSX.utils.aoa_to_sheet(data);
       
       // 设置列宽
       const colWidths = Array(7).fill({ wch: 15 });
@@ -57,7 +74,7 @@ export class ExportManager {
         rowHeights.push({ hpx: 40 }); // 标题行
       }
       rowHeights.push({ hpx: 30 }); // 星期标题行
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < calendarRows; i++) {
         rowHeights.push({ hpx: 80 }); // 日历行
       }
       // 确保行数与rowHeights数组长度一致
@@ -100,7 +117,7 @@ export class ExportManager {
       // 设置日历数据和样式（只遍历一次）
       let startRow = options.includeHeader ? 2 : 1;
       let currentDay = 1;
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < calendarRows; i++) {
         for (let j = 0; j < 7; j++) {
           if ((i === 0 && j < firstDay) || currentDay > daysInMonth) {
             // 空单元格
@@ -116,7 +133,7 @@ export class ExportManager {
           } else {
             const cell = XLSX.utils.encode_cell({ r: startRow + i, c: j });
             const dateStr = `${year}-${month}-${String(currentDay).padStart(2, '0')}`;
-            const entry = monthEntries.find(e => e.date === dateStr);
+            const entry = monthEntriesMap.get(dateStr);
             if (entry) {
               ws[cell] = {
                 v: `${currentDay}\n${entry.personName}`,
@@ -254,6 +271,17 @@ export class ExportManager {
       const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
       const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1).getDay();
       
+      // 动态计算日历所需行数
+      // 公式逻辑：daysInMonth + firstDay 计算总单元格数
+      // 除以7得到所需周数，Math.ceil确保向上取整
+      const calendarRows = Math.ceil((daysInMonth + firstDay) / 7);
+      
+      // 为了快速匹配，先将当月entries转为Map
+      const monthEntriesMap = new Map<string, ScheduleEntry>();
+      monthEntries.forEach(entry => {
+        monthEntriesMap.set(entry.date, entry);
+      });
+      
       html += `
         <table>
           <thead>
@@ -272,14 +300,14 @@ export class ExportManager {
       
       // 日历数据
       let currentDay = 1;
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < calendarRows; i++) {
         html += '<tr>';
         for (let j = 0; j < 7; j++) {
           if ((i === 0 && j < firstDay) || currentDay > daysInMonth) {
             html += '<td class="calendar-cell"></td>';
           } else {
             const dateStr = `${year}-${month}-${String(currentDay).padStart(2, '0')}`;
-            const entry = monthEntries.find(e => e.date === dateStr);
+            const entry = monthEntriesMap.get(dateStr);
             if (entry) {
               html += `
                 <td class="calendar-cell">

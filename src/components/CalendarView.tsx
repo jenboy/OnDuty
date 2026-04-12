@@ -141,9 +141,19 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
       tempContainer.style.margin = '0 auto';
       tempContainer.style.padding = '20px';
       tempContainer.style.backgroundColor = '#ffffff';
+      tempContainer.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
       
       // 复制日历内容
       const calendarClone = calendarRef.current.cloneNode(true) as HTMLElement;
+      
+      // 安全地复制样式：只复制内联样式和style标签，避免跨域风险
+      const styleElements = document.querySelectorAll('style');
+      styleElements.forEach(el => {
+        const styleCopy = document.createElement('style');
+        styleCopy.textContent = el.textContent;
+        tempContainer.appendChild(styleCopy);
+      });
+      
       tempContainer.appendChild(calendarClone);
       
       // 添加到文档中
