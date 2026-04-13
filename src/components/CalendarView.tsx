@@ -113,12 +113,23 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
     setCurrentDate(new Date());
   };
 
+  // 检查是否有有效数据
+  const hasValidData = () => {
+    return schedules?.some(s => s?.entries?.length > 0) || false;
+  };
+
   const handleExport = async () => {
-    if (schedules.length === 0) return;
+    if (!hasValidData()) return;
 
     setIsExporting(true);
     
     try {
+      // 确保schedules[0]存在
+      if (!schedules || !schedules[0]) {
+        setIsExporting(false);
+        return;
+      }
+      
       // 使用第一个排班表作为导出基础
       const exporter = new ExportManager(schedules[0]);
 
@@ -139,11 +150,20 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
   };
 
   const handleExportImage = async () => {
-    if (!calendarRef.current) return;
+    if (!calendarRef.current || !hasValidData()) return;
     
     setIsExporting(true);
     
     try {
+      // 确保schedules[0]存在
+      if (!schedules || !schedules[0]) {
+        setIsExporting(false);
+        return;
+      }
+      
+      // 创建导出管理器实例
+      const exporter = new ExportManager(schedules[0]);
+      
       // 创建一个临时容器，复制日历内容
       const tempContainer = document.createElement('div');
       tempContainer.style.width = '100%';
@@ -182,8 +202,9 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
       });
       
       // 保存图片
+      const timestamp = exporter.getTimestamp();
       const link = document.createElement('a');
-      link.download = `calendar.png`;
+      link.download = `calendar_${timestamp}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
       

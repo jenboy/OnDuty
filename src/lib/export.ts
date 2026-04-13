@@ -24,6 +24,11 @@ export class ExportManager {
     return monthlyData;
   }
 
+  // 获取时间戳
+  public getTimestamp(): string {
+    return new Date().toISOString().replace(/[:.]/g, '-');
+  }
+
   // 获取名言
   private async getHitokoto(): Promise<{ content: string; from: string }> {
     try {
@@ -105,9 +110,25 @@ export class ExportManager {
       // 创建工作表
       const ws = XLSX.utils.aoa_to_sheet(data);
       
-      // 设置列宽
-      const colWidths = Array(7).fill({ wch: 15 });
-      ws['!cols'] = colWidths;
+      // 设置列宽，适合A4横向打印
+      ws['!cols'] = [
+        { wch: 12 }, // 星期日
+        { wch: 12 }, // 星期一
+        { wch: 12 }, // 星期二
+        { wch: 12 }, // 星期三
+        { wch: 12 }, // 星期四
+        { wch: 12 }, // 星期五
+        { wch: 12 }  // 星期六
+      ];
+      
+      // 设置页面设置为A4横向
+      ws['!pageSetup'] = {
+        orientation: 'landscape', // 横向
+        paperSize: 9, // A4
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0
+      };
       
       // 设置行高
       const rowHeights = [];
@@ -274,7 +295,7 @@ export class ExportManager {
     // 生成文件
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    saveAs(blob, `${this.schedule.name}.xlsx`);
+    saveAs(blob, `${this.schedule.name}_${this.getTimestamp()}.xlsx`);
   }
 
   // 导出为 Word (优化排版)
@@ -457,7 +478,7 @@ export class ExportManager {
     const blob = new Blob(['﻿', html], {
       type: 'application/msword',
     });
-    saveAs(blob, `${this.schedule.name}.doc`);
+    saveAs(blob, `${this.schedule.name}_${this.getTimestamp()}.doc`);
   }
 
 
