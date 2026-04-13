@@ -24,41 +24,56 @@ export class ExportManager {
     return monthlyData;
   }
 
-  // 获取时间戳（13位毫秒时间戳）
+  // 获取时间戳
   public getTimestamp(): string {
-    return Date.now().toString();
+    return new Date().toISOString().replace(/[:.]/g, '-');
   }
 
-  // 获取名言（使用默认值，避免CORS问题）
+  // 获取名言
   private async getHitokoto(): Promise<{ content: string; from: string }> {
-    // 由于CORS限制，直接返回默认名言
-    // 这里可以根据需要添加更多默认名言，随机返回一个
-    const defaultQuotes = [
-      {
-        content: '如果我是那雨滴的话，那么，我能够像把不曾交汇的天空与大地连接起来那样，把某人的心串联起来吗？',
-        from: '死神'
-      },
-      {
+    try {
+      // 添加超时控制，5秒后中止请求
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      console.log('Fetching hitokoto...');
+      const response = await fetch('https://api.baiwumm.com/api/hitokoto', {
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch hitokoto: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('Hitokoto API response:', result);
+      
+      const data = result.data || {};
+      
+      if (!data.content) {
+        throw new Error('No content found in API response');
+      }
+      
+      console.log('Hitokoto content:', data.content);
+      console.log('Hitokoto from:', data.from);
+      
+      return {
+        content: data.content,
+        from: data.from || '未知来源'
+      };
+    } catch (error) {
+      console.error('Error fetching hitokoto (will use fallback):', error);
+      // 返回默认值
+      return {
         content: '千万丈的大厦总要有片奠基石，最初的爱好无可替代。',
         from: '王小波「我的精神家园」'
-      },
-      {
-        content: '人生就像一场旅行，不必在乎目的地，在乎的是沿途的风景以及看风景的心情。',
-        from: '佚名'
-      },
-      {
-        content: '真正的光明决不是永没有黑暗的时间，只是永不被黑暗所掩蔽罢了。',
-        from: '罗曼·罗兰'
-      },
-      {
-        content: '我们唯一不会改正的缺点是软弱。',
-        from: '拉罗什福科'
-      }
-    ];
-    
-    // 随机选择一个名言
-    const randomIndex = Math.floor(Math.random() * defaultQuotes.length);
-    return defaultQuotes[randomIndex];
+      };
+    }
   }
 
   // 导出为 Excel (优化布局)
