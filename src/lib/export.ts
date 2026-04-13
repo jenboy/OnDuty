@@ -36,6 +36,7 @@ export class ExportManager {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
+      console.log('Fetching hitokoto...');
       const response = await fetch('https://api.baiwumm.com/api/hitokoto', {
         signal: controller.signal
       });
@@ -47,11 +48,16 @@ export class ExportManager {
       }
       
       const result = await response.json();
+      console.log('Hitokoto API response:', result);
+      
       const data = result.data || {};
       
       if (!data.content) {
         throw new Error('No content found in API response');
       }
+      
+      console.log('Hitokoto content:', data.content);
+      console.log('Hitokoto from:', data.from);
       
       return {
         content: data.content,
@@ -128,6 +134,17 @@ export class ExportManager {
         fitToPage: true,
         fitToWidth: 1,
         fitToHeight: 0
+      };
+      
+      // 设置默认单元格样式
+      ws['!default'] = {
+        s: {
+          alignment: {
+            horizontal: 'center',
+            vertical: 'center',
+            wrapText: true
+          }
+        }
       };
       
       // 设置行高
