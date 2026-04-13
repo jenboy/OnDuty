@@ -175,7 +175,7 @@ export class ExportManager {
               v: '',
               t: 's',
               s: {
-                alignment: { horizontal: 'center', vertical: 'center' },
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
                 font: { sz: 12 }
               }
             };
@@ -185,7 +185,7 @@ export class ExportManager {
               v: '',
               t: 's',
               s: {
-                alignment: { horizontal: 'center', vertical: 'center' },
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
                 font: { sz: 12 }
               }
             };
@@ -213,7 +213,7 @@ export class ExportManager {
                 v: entry.personName,
                 t: 's',
                 s: {
-                  alignment: { horizontal: 'center', vertical: 'center' },
+                  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
                   font: { sz: 12, bold: true }
                 }
               };
@@ -222,7 +222,7 @@ export class ExportManager {
                 v: '',
                 t: 's',
                 s: {
-                  alignment: { horizontal: 'center', vertical: 'center' },
+                  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
                   font: { sz: 12 }
                 }
               };
@@ -236,13 +236,25 @@ export class ExportManager {
       
       // 添加底部引用
       const footerRow = startRow + calendarRows * 2;
+      
+      // 合并底部引用单元格
+      if (ws['!merges']) {
+        ws['!merges'].push({ s: { r: footerRow + 1, c: 0 }, e: { r: footerRow + 1, c: 6 } });
+        ws['!merges'].push({ s: { r: footerRow + 2, c: 0 }, e: { r: footerRow + 2, c: 6 } });
+      } else {
+        ws['!merges'] = [
+          { s: { r: footerRow + 1, c: 0 }, e: { r: footerRow + 1, c: 6 } },
+          { s: { r: footerRow + 2, c: 0 }, e: { r: footerRow + 2, c: 6 } }
+        ];
+      }
+      
       const footerCell = XLSX.utils.encode_cell({ r: footerRow + 1, c: 0 });
       ws[footerCell] = {
         v: hitokoto.content,
         t: 's',
         s: {
           font: { sz: 12, color: { rgb: '666666' } },
-          alignment: { horizontal: 'left', vertical: 'center' }
+          alignment: { horizontal: 'center', vertical: 'center' }
         }
       };
       
@@ -252,7 +264,7 @@ export class ExportManager {
         t: 's',
         s: {
           font: { sz: 12, color: { rgb: '666666' } },
-          alignment: { horizontal: 'right', vertical: 'center' }
+          alignment: { horizontal: 'center', vertical: 'center' }
         }
       };
       
