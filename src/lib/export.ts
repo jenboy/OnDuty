@@ -26,7 +26,7 @@ export class ExportManager {
 
   // 获取时间戳
   public getTimestamp(): string {
-    return new Date().toISOString().replace(/[:.]/g, '-');
+    return Date.now().toString();
   }
 
   // 获取名言

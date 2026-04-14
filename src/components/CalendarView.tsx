@@ -202,7 +202,7 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
       });
       
       // 保存图片
-      const timestamp = exporter.getTimestamp();
+      const timestamp = Date.now().toString();
       const link = document.createElement('a');
       link.download = `calendar_${timestamp}.png`;
       link.href = canvas.toDataURL('image/png');
