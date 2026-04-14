@@ -40,6 +40,7 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
     fontSize: 12,
     primaryColor: '#3b82f6',
   });
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string>('');
   const [isExporting, setIsExporting] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
 
@@ -118,20 +119,31 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
     return schedules?.some(s => s?.entries?.length > 0) || false;
   };
 
+  // 获取要导出的排班表
+  const getSelectedSchedule = () => {
+    if (!schedules?.length) return null;
+    
+    // 如果选择了特定排班表，返回该排班表
+    if (selectedScheduleId) {
+      const selected = schedules.find(s => s.id === selectedScheduleId);
+      return selected || schedules[0];
+    }
+    
+    // 默认返回第一个排班表
+    return schedules[0];
+  };
+
   const handleExport = async () => {
     if (!hasValidData()) return;
 
     setIsExporting(true);
     
     try {
-      // 确保schedules[0]存在
-      if (!schedules || !schedules[0]) {
-        setIsExporting(false);
-        return;
-      }
+      const schedule = getSelectedSchedule();
+      if (!schedule) return;
       
-      // 使用第一个排班表作为导出基础
-      const exporter = new ExportManager(schedules[0]);
+      // 使用选择的排班表作为导出基础
+      const exporter = new ExportManager(schedule);
 
       switch (exportOptions.format) {
         case 'excel':
@@ -149,20 +161,24 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
     }
   };
 
+  // 当显示导出模态框时，自动选择第一个排班表
+  useEffect(() => {
+    if (showExportModal && schedules.length > 0) {
+      setSelectedScheduleId(schedules[0].id);
+    }
+  }, [showExportModal, schedules]);
+
   const handleExportImage = async () => {
     if (!calendarRef.current || !hasValidData()) return;
     
     setIsExporting(true);
     
     try {
-      // 确保schedules[0]存在
-      if (!schedules || !schedules[0]) {
-        setIsExporting(false);
-        return;
-      }
+      const schedule = getSelectedSchedule();
+      if (!schedule) return;
       
       // 创建导出管理器实例
-      const exporter = new ExportManager(schedules[0]);
+      const exporter = new ExportManager(schedule);
       
       // 创建一个临时容器，复制日历内容
       const tempContainer = document.createElement('div');
@@ -463,6 +479,22 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
             </div>
             
             <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  选择排班表
+                </label>
+                <select
+                  value={selectedScheduleId}
+                  onChange={(e) => setSelectedScheduleId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {schedules.map((schedule) => (
+                    <option key={schedule.id} value={schedule.id}>
+                      {schedule.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   选择导出格式

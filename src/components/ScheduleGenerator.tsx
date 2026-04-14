@@ -48,12 +48,6 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
 
   const activePersons = persons.filter((p) => p.isActive);
 
-  // 自动生成排班表名称
-  const autoGenerateName = () => {
-    const newName = generateScheduleName(config.startDate, config.endDate, nameFormat);
-    setScheduleName(newName);
-  };
-
   // 当日期或格式变化时，自动更新名称
   useEffect(() => {
     const suggestedName = generateScheduleName(config.startDate, config.endDate, nameFormat);
@@ -144,7 +138,10 @@ export function ScheduleGenerator({ persons, onGenerate }: ScheduleGeneratorProp
             />
             <button
               type="button"
-              onClick={autoGenerateName}
+              onClick={() => {
+                const newName = generateScheduleName(config.startDate, config.endDate, nameFormat);
+                setScheduleName(newName);
+              }}
               className="flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
               title="自动生成名称"
             >
