@@ -1,3 +1,11 @@
+# Cloudflare Workers 静态资源模式（可选）
+#
+# 与 Cloudflare **Pages** 的区别：
+#   - Pages（Git 集成或 `npx wrangler pages deploy dist`）：构建配置在 Cloudflare 面板里，
+#     本文件不参与；面板里需填 Build command = `npm run build`、输出目录 = `dist`。
+#   - Workers 静态资源（本文件）：`npx wrangler deploy` 会把 [assets] 指向的目录作为静态站点发布。
+# 两种方式产物相同，都是 `npm run build` 生成的 dist/。
+
 name = "onduty"
 compatibility_date = "2024-01-01"
 

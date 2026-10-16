@@ -2,6 +2,9 @@
   "name": "onduty",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,7 +16,6 @@
   "dependencies": {
     "@headlessui/react": "^2.2.10",
     "clsx": "^2.1.1",
-    "date-fns": "^4.4.0",
     "html-to-image": "^1.11.13",
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.58.0",
