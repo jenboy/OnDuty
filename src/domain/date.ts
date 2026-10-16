@@ -126,3 +126,30 @@ export const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', 
 export function weekdayName(day: Weekday): string {
   return WEEKDAY_NAMES[day];
 }
+
+export const MONTH_NAMES = [
+  '一月',
+  '二月',
+  '三月',
+  '四月',
+  '五月',
+  '六月',
+  '七月',
+  '八月',
+  '九月',
+  '十月',
+  '十一月',
+  '十二月',
+] as const;
+
+/** month0 为 0-11 */
+export function getMonthName(month0: number): string {
+  return MONTH_NAMES[month0] ?? `${month0 + 1}月`;
+}
+
+/** 该日期是当月第几周（用于「2026年4月第2周值日表」这类命名） */
+export function getWeekOfMonth(key: DateKey): number {
+  const date = fromKey(key);
+  const firstWeekday = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  return Math.ceil((date.getDate() + firstWeekday) / 7);
+}

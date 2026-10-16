@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import './globals.css';
+import { AppShell } from '@/components/AppShell';
+import { ToastProvider } from '@/components/ui/Toast';
 
 export const metadata: Metadata = {
-  title: "OnDuty - 值日排班系统",
-  description: "OnDuty 智能值日排班管理系统 - 支持多种轮换策略、节假日避让、多格式导出",
+  title: 'OnDuty - 值日排班系统',
+  description: '值日排班管理：人员管理、轮换策略、农历与二十四节气、Excel/Word/图片导出（数据保存在本机浏览器）',
 };
 
 export default function RootLayout({
@@ -13,8 +15,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased bg-gray-100 min-h-screen">
-        {children}
+      <body className="min-h-screen bg-gray-100 antialiased">
+        <ToastProvider>
+          <AppShell>{children}</AppShell>
+        </ToastProvider>
       </body>
     </html>
   );

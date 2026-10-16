@@ -1,298 +1,176 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useStore } from '@/store/useStore';
-import { PersonManager } from '@/components/PersonManager';
-import { ScheduleGenerator } from '@/components/ScheduleGenerator';
-import { CalendarView } from '@/components/CalendarView';
-import { Schedule } from '@/types';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { CalendarDays, CalendarPlus, Download, ListChecks } from 'lucide-react';
+import { collectMonthStats, collectStats } from '@/domain/stats';
+import { fromKey, todayKey } from '@/domain/date';
+import { getDayLunar } from '@/domain/lunar';
+import { useActiveSchedule, usePersonLookup, useSchedules } from '@/store/useAppStore';
+import { CalendarGrid, CalendarLegend } from '@/components/calendar/CalendarGrid';
+import { MonthNav } from '@/components/calendar/MonthNav';
+import { useEntryMap } from '@/components/calendar/useEntryMap';
+import { Button } from '@/components/ui/Button';
 
-import {
-  Users,
-  Calendar,
-  Settings,
-  Download,
-  Menu,
-  X,
-  Trash2,
-  TrendingUp,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+export default function HomePage() {
+  const schedules = useSchedules();
+  const activeSchedule = useActiveSchedule();
+  const personLookup = usePersonLookup();
 
-type TabType = 'persons' | 'schedule' | 'calendar';
+  const today = todayKey();
+  const [cursor, setCursor] = useState(() => {
+    const now = fromKey(today);
+    return { year: now.getFullYear(), month0: now.getMonth() };
+  });
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabType>('persons');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [calendarInitialDate, setCalendarInitialDate] = useState<Date | undefined>(undefined);
+  const schedule = activeSchedule ?? schedules[0] ?? null;
+  const entries = useEntryMap(schedule);
+  const persons = useMemo(() => Object.values(personLookup), [personLookup]);
 
-  // 初始化存储
-  const { 
-    persons, 
-    schedules, 
-    currentSchedule, 
-    isLoaded, 
-    isSaving, 
-    addPerson, 
-    updatePerson, 
-    deletePerson, 
-    reorderPersons, 
-    saveSchedule, 
-    deleteSchedule, 
-    setCurrentSchedule, 
-    loadState 
-  } = useStore();
+  const todayEntry = entries.get(today);
+  const todayPerson = todayEntry?.personId ? personLookup[todayEntry.personId] : undefined;
+  const todayLunar = getDayLunar(today);
 
-  useEffect(() => {
-    loadState();
-  }, [loadState]);
+  const monthStats = useMemo(
+    () => (schedule ? collectMonthStats(schedule, persons, cursor.year, cursor.month0) : null),
+    [schedule, persons, cursor]
+  );
+  const totalStats = useMemo(() => (schedule ? collectStats(schedule, persons) : null), [schedule, persons]);
 
-  const handleGenerateSchedule = (schedule: Schedule) => {
-    saveSchedule(schedule);
-    setActiveTab('calendar');
-  };
-
-  const handleLoadSchedule = (schedule: Schedule) => {
-    setCurrentSchedule(schedule);
-    setCalendarInitialDate(new Date(schedule.config.startDate));
-    setActiveTab('calendar');
-  };
-
-  const tabs = [
-    { id: 'persons' as TabType, label: '人员管理', icon: Users },
-    { id: 'schedule' as TabType, label: '排班设置', icon: Settings },
-    { id: 'calendar' as TabType, label: '日历视图', icon: Calendar },
-  ];
-
-  if (!isLoaded) {
+  if (!schedule) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-gray-600">加载中...</div>
+      <div className="mx-auto max-w-xl rounded-xl border border-gray-200 bg-white p-10 text-center shadow-sm">
+        <CalendarDays className="mx-auto h-10 w-10 text-blue-600" />
+        <h1 className="mt-4 text-xl font-bold text-gray-900">还没有排班表</h1>
+        <p className="mt-2 text-sm text-gray-500">
+          先在「人员」里录入参与值班的同事，再到「排班表」生成第一张值日表。数据只保存在这台设备的浏览器里。
+        </p>
+        <div className="mt-6 flex justify-center gap-2">
+          <Link href="/people">
+            <Button>录入人员</Button>
+          </Link>
+          <Link href="/schedules">
+            <Button variant="primary" icon={<CalendarPlus className="h-4 w-4" />}>
+              生成排班表
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">OnDuty 值日排班</h1>
-            </div>
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-sm font-medium text-gray-500">今天值班</h2>
+          <p className="mt-1 text-xs text-gray-400">
+            {today} · {todayLunar.jieQi ?? todayLunar.full}
+          </p>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2 rounded-lg transition-colors',
-                    activeTab === tab.id
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  )}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-
-            {/* Mobile Menu Button */}
-            <div className="flex items-center">
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                {isMobileMenuOpen ? (
-                  <X className="w-6 h-6" />
-                ) : (
-                  <Menu className="w-6 h-6" />
-                )}
-              </button>
-            </div>
+          <div className="mt-4">
+            {todayEntry ? (
+              todayEntry.personId ? (
+                <div className="flex items-center gap-3">
+                  <span
+                    className="flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold text-white"
+                    style={{ backgroundColor: todayPerson?.color ?? '#3b82f6' }}
+                  >
+                    {(todayPerson?.name ?? '?').slice(0, 1)}
+                  </span>
+                  <div>
+                    <p className="text-xl font-bold text-gray-900">{todayPerson?.name ?? '（已删除的人员）'}</p>
+                    {todayPerson?.department && <p className="text-sm text-gray-500">{todayPerson.department}</p>}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-lg font-medium text-gray-400">今天没有可用人员</p>
+              )
+            ) : (
+              <p className="text-sm text-gray-400">今天不在「{schedule.name}」的排班范围内</p>
+            )}
           </div>
+
+          <dl className="mt-6 space-y-2 border-t border-gray-100 pt-4 text-sm">
+            <div className="flex justify-between gap-2">
+              <dt className="text-gray-500">当前排班表</dt>
+              <dd className="max-w-[11rem] truncate font-medium text-gray-800">{schedule.name}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-gray-500">周期</dt>
+              <dd className="font-medium text-gray-800">
+                {schedule.config.startDate} ~ {schedule.config.endDate}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-gray-500">全周期</dt>
+              <dd className="font-medium text-gray-800">
+                {totalStats?.assignedDays ?? 0} 天 / {totalStats?.involvedPersons ?? 0} 人
+              </dd>
+            </div>
+          </dl>
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Link href={`/schedule?id=${encodeURIComponent(schedule.id)}`}>
+              <Button size="sm" variant="primary" icon={<Download className="h-4 w-4" />}>
+                查看与导出
+              </Button>
+            </Link>
+            <Link href="/schedules">
+              <Button size="sm" icon={<CalendarPlus className="h-4 w-4" />}>
+                新建排班表
+              </Button>
+            </Link>
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
+          <MonthNav
+            year={cursor.year}
+            month0={cursor.month0}
+            onChange={(year, month0) => setCursor({ year, month0 })}
+            right={<span className="text-sm text-gray-400">绿色为二十四节气</span>}
+          />
+          <CalendarGrid year={cursor.year} month0={cursor.month0} entries={entries} personLookup={personLookup} />
+          <CalendarLegend personIds={schedule.personIds} personLookup={personLookup} />
+        </section>
+      </div>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800">
+            <ListChecks className="h-5 w-5 text-blue-600" />
+            本月值班统计
+          </h2>
+          <span className="text-sm text-gray-500">
+            已排 {monthStats?.assignedDays ?? 0} 天
+            {monthStats && monthStats.unassignedDays > 0 && (
+              <span className="ml-2 text-amber-600">无人可排 {monthStats.unassignedDays} 天</span>
+            )}
+          </span>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <nav className="md:hidden border-t border-gray-200">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setIsMobileMenuOpen(false);
-                }}
-                className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 transition-colors',
-                  activeTab === tab.id
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50'
-                )}
-              >
-                <tab.icon className="w-5 h-5" />
-                {tab.label}
-              </button>
-            ))}
-
-          </nav>
+        {monthStats && monthStats.perPerson.length > 0 ? (
+          <div className="space-y-3">
+            {monthStats.perPerson.map((item) => {
+              const max = monthStats.perPerson[0].days || 1;
+              return (
+                <div key={item.personId} className="flex items-center gap-3">
+                  <span className="w-20 shrink-0 truncate text-sm text-gray-700">{item.name}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                    <span
+                      className="block h-full rounded-full"
+                      style={{ width: `${(item.days / max) * 100}%`, backgroundColor: item.color }}
+                    />
+                  </span>
+                  <span className="w-12 shrink-0 text-right text-sm font-medium text-gray-700">{item.days} 天</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">这个月没有排班记录</p>
         )}
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Column - 历史排班表 */}
-          <div className="lg:col-span-1 space-y-6">
-            {schedules.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                  历史排班表 ({schedules.length})
-                </h3>
-                <div className="space-y-3">
-                  {schedules.map((schedule) => (
-                    <div
-                      key={schedule.id}
-                      className={cn(
-                        'flex items-center justify-between p-4 rounded-lg border transition-all cursor-pointer hover:shadow-sm',
-                        currentSchedule?.id === schedule.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-blue-300'
-                      )}
-                      onClick={() => handleLoadSchedule(schedule)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-gray-900 truncate">
-                          {schedule.name}
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1">
-                          {schedule.config.startDate} 至 {schedule.config.endDate}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          {schedule.entries.length} 天 · {schedule.personIds.length} 人
-                        </div>
-                      </div>
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (confirm('确定要删除这个排班表吗？')) {
-                            await deleteSchedule(schedule.id);
-                          }
-                        }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Middle Column - Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {activeTab === 'persons' && (
-              <PersonManager
-                persons={persons}
-                onAdd={addPerson}
-                onUpdate={updatePerson}
-                onDelete={deletePerson}
-                onReorder={reorderPersons}
-              />
-            )}
-
-            {activeTab === 'schedule' && (
-              <ScheduleGenerator
-                persons={persons}
-                onGenerate={handleGenerateSchedule}
-              />
-            )}
-
-            {activeTab === 'calendar' && (
-              <CalendarView 
-                schedules={schedules} 
-                currentSchedule={currentSchedule} 
-                persons={persons} 
-                initialDate={calendarInitialDate} 
-              />
-            )}
-          </div>
-
-          {/* Right Column - Quick Stats */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-                统计信息
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">总人数</span>
-                  <span className="text-2xl font-bold text-blue-600">
-                    {persons.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">启用人员</span>
-                  <span className="text-2xl font-bold text-green-600">
-                    {persons.filter((p) => p.isActive).length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">排班表</span>
-                  <span className="text-2xl font-bold text-purple-600">
-                    {schedules.length}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {currentSchedule && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                  当前排班
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                    <span className="text-gray-600">名称</span>
-                    <span className="font-medium">{currentSchedule.name}</span>
-                  </div>
-                  <div className="flex justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                    <span className="text-gray-600">周期</span>
-                    <span className="font-medium">
-                      {currentSchedule.entries.length} 天
-                    </span>
-                  </div>
-                  <div className="flex justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                    <span className="text-gray-600">参与人员</span>
-                    <span className="font-medium">
-                      {currentSchedule.personIds.length} 人
-                    </span>
-                  </div>
-                  <div className="flex justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                    <span className="text-gray-600">创建时间</span>
-                    <span className="font-medium">
-                      {new Date(currentSchedule.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-
-
+      </section>
     </div>
   );
 }
