@@ -12,12 +12,12 @@ jobs:
     # 内网镜像（ModernMirror）跑在宿主机上。docker 容器访问不了宿主机的局域网 IP，
     # 但可以经 docker 网桥网关访问，所以地址在运行时由容器路由表算出（每次作业网段可能不同），
     # 仓库里只存端口和密钥这两个 Secret，任何内网地址都不入库：
-    #   NPM_MIRROR_PORT = 9812
-    #   NPM_TOKEN       = 镜像的客户端密钥
+    #   MODERNMIRROR_PORT = 9812
+    #   MODERNMIRROR_TOKEN       = 镜像的客户端密钥
     # 两者缺一就退回 npm 默认源（fork 也能构建）。
     env:
-      NPM_MIRROR_PORT: ${{ secrets.NPM_MIRROR_PORT }}
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      MODERNMIRROR_PORT: ${{ secrets.MODERNMIRROR_PORT }}
+      MODERNMIRROR_TOKEN: ${{ secrets.MODERNMIRROR_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,15 +28,15 @@ jobs:
 
       - name: 配置 npm 源
         run: |
-          if [ -z "$NPM_TOKEN" ] || [ -z "$NPM_MIRROR_PORT" ]; then
+          if [ -z "$MODERNMIRROR_TOKEN" ] || [ -z "$MODERNMIRROR_PORT" ]; then
             echo "未配置镜像 Secret，使用 npm 默认源"
             exit 0
           fi
           # /proc/net/route 里的网关是小端十六进制，例如 0119A8C0 -> 192.168.25.1
           hex=$(awk '$2=="00000000"{print $3; exit}' /proc/net/route)
           gateway="$((16#${hex:6:2})).$((16#${hex:4:2})).$((16#${hex:2:2})).$((16#${hex:0:2}))"
-          registry="http://$gateway:$NPM_MIRROR_PORT/proxy/npm/"
-          printf 'registry=%s\n//%s:_authToken=%s\n' "$registry" "${registry#*://}" "$NPM_TOKEN" >> "$HOME/.npmrc"
+          registry="http://$gateway:$MODERNMIRROR_PORT/proxy/npm/"
+          printf 'registry=%s\n//%s:_authToken=%s\n' "$registry" "${registry#*://}" "$MODERNMIRROR_TOKEN" >> "$HOME/.npmrc"
           echo "npm 源已指向内网镜像：${registry#*://}"
 
       - name: 安装依赖
