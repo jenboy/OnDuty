@@ -3,7 +3,7 @@
 一个纯前端的值日排班工具：录入人员 → 生成排班 → 看日历（含农历与二十四节气）→ 导出 Excel / Word / 图片。
 **没有后端**：所有数据都保存在使用者自己的浏览器里。
 
-> **仓库来源**：本仓库迁自 GitHub [`jenboy/OnDuty`](https://github.com/jenboy/OnDuty)，现以自建 Gitea为主仓，并向 GitHub 做**推送镜像**（默认每 24 小时同步一次 ref；Release 条目不会同步）。
+> **仓库来源**：本仓库迁自 GitHub [`jenboy/OnDuty`](https://github.com/jenboy/OnDuty)，日常在自建 Gitea 上开发，并向 GitHub 做**推送镜像**（默认每 24 小时同步一次 ref；Release 条目不会同步）。
 > **版本控制约定**：构建产物（`.next/`、`dist/`、`out/`）与依赖目录不入库。
 > **发布与版本管理**：见 [RELEASING.md](./RELEASING.md)。
 
