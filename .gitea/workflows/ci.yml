@@ -8,13 +8,30 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # 内网镜像（ModernMirror）的地址与密钥放在仓库 Secrets 里，绝不写进本文件：
+    #   NPM_REGISTRY = http://<host>:<port>/proxy/npm/
+    #   NPM_TOKEN    = 镜像的客户端密钥
+    # 未配置时自动退回 npm 默认源，别人 fork 也能跑。
+    env:
+      NPM_REGISTRY: ${{ secrets.NPM_REGISTRY }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
       # runner 镜像（docker.gitea.com/runner-images:ubuntu-latest）已自带 Node 24 + npm 11；
-      # 这里不再用 actions/setup-node —— 实测它会卡在下载 Node 发行包上（14 分钟无进展）。
+      # 这里不用 actions/setup-node —— 实测它会卡在下载 Node 发行包上（14 分钟无进展）。
       - name: 环境信息
         run: node -v && npm -v
+
+      - name: 配置 npm 源
+        run: |
+          if [ -n "$NPM_REGISTRY" ]; then
+            host_path="${NPM_REGISTRY#*://}"
+            printf 'registry=%s\n//%s:_authToken=%s\n' "$NPM_REGISTRY" "$host_path" "$NPM_TOKEN" >> "$HOME/.npmrc"
+            echo "npm 源已指向内网镜像：$host_path"
+          else
+            echo "未配置 NPM_REGISTRY，使用 npm 默认源"
+          fi
 
       - name: 安装依赖
         run: npm ci --no-audit --no-fund
