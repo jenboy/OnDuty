@@ -2,6 +2,9 @@
 
 一个功能强大、易用的值日排班系统，支持多种排班策略、农历显示和多格式导出。
 
+> **仓库来源**：本仓库迁自 GitHub [`jenboy/OnDuty`](https://github.com/jenboy/OnDuty)，现托管于自建 Gitea。当前非镜像仓库，上游更新需手动同步。
+> **版本控制约定**：构建产物（`.next/`、`dist/`、`out/`）与依赖目录不入库。
+
 ## ✨ 核心特性
 
 ### 📋 人员管理
@@ -36,13 +39,13 @@
 
 ### 本地开发
 
-1. **克隆项目**
+1. **克隆项目**（本仓库托管在自建 Gitea 上）
    ```bash
-   git clone git@github.com:jenboy/OnDuty.git
+   git clone 自建 Gitea
    cd OnDuty
    ```
 
-2. **安装依赖**
+2. **安装依赖**（需要 Node.js 18 或更高版本）
    ```bash
    npm install
    ```
@@ -69,17 +72,19 @@
    wrangler login
    ```
 
-3. **部署**
+3. **构建并部署**
    ```bash
-   npm run build
-   wrangler pages deploy
+   npm run build          # 静态产物输出到 dist/
+   npx wrangler pages deploy dist
    ```
 
 #### 其他托管服务
 
+构建产物是纯静态站点，位于 `dist/`（`next.config.js` 中 `output: 'export'` + `distDir: 'dist'`）。
+
 - **Vercel**：`npx vercel`
-- **GitHub Pages**：部署 `build` 目录
-- **Netlify**：连接 GitHub 仓库自动部署
+- **Cloudflare Workers（静态资源）**：`wrangler.toml` 已将 `[assets] directory` 指向 `./dist`，执行 `npx wrangler deploy`
+- **GitHub Pages / Netlify / Nginx 等**：直接上传或指向 `dist/` 目录
 
 ## 📖 使用指南
 
@@ -119,8 +124,6 @@ OnDuty/
 │   │   ├── PersonManager.tsx    # 人员管理
 │   │   ├── ScheduleGenerator.tsx # 排班生成
 │   │   └── CalendarView.tsx      # 日历视图
-│   ├── hooks/            # React Hooks
-│   │   └── useStorage.ts # 存储 Hook（已弃用，使用 Zustand）
 │   ├── store/            # Zustand 状态管理
 │   │   └── useStore.ts   # 全局状态存储
 │   ├── lib/              # 工具库
@@ -140,17 +143,18 @@ OnDuty/
 
 ## 🛠 技术栈
 
-- **前端框架**：Next.js 14
+- **前端框架**：Next.js 14（App Router，静态导出）
 - **UI 框架**：Tailwind CSS v3
 - **语言**：TypeScript
 - **状态管理**：Zustand
-- **存储方案**：localStorage（本地存储）
+- **存储方案**：localStorage（本地存储，数据不出浏览器）
 - **图标库**：Lucide React
 - **导出库**：
   - Excel: xlsx
   - Word: 原生 HTML
   - 图片: html2canvas
-  - PDF: jspdf
+
+> 导出 Excel 时会尝试从在线接口获取一句名言，请求超时（5 秒）或离线时回落到内置默认句子，不影响导出结果。
 
 ## 🌐 浏览器支持
 
