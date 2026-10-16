@@ -394,7 +394,7 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
       {/* Stats Modal */}
       {showStatsModal && monthlyStats.length > 0 && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
           onClick={() => setShowStatsModal(false)}
         >
           <div 
@@ -419,7 +419,7 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
                 {monthlyStats.map((stat) => (
                   <div key={stat.personId} className="flex items-center gap-3">
                     <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      className="w-3 h-3 rounded-full shrink-0"
                       style={{ backgroundColor: stat.color }}
                     />
                     <div className="flex-1 min-w-0">
@@ -458,7 +458,7 @@ export function CalendarView({ schedules, currentSchedule, persons, initialDate 
       {/* Export Modal */}
       {showExportModal && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
           onClick={() => setShowExportModal(false)}
         >
           <div 

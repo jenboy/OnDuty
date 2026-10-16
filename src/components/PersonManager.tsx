@@ -134,7 +134,7 @@ export function PersonManager({
 
       {/* 添加/编辑人员弹窗 */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="font-bold text-lg text-gray-800">
@@ -287,7 +287,7 @@ export function PersonManager({
                 <GripVertical className="w-4 h-4" />
               </div>
               <div
-                className="w-4 h-4 rounded-full flex-shrink-0"
+                className="w-4 h-4 rounded-full shrink-0"
                 style={{ backgroundColor: person.color || COLORS[0] }}
               />
               <div className="flex-1 min-w-0">

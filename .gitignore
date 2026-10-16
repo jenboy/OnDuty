@@ -52,3 +52,6 @@ next-env.d.ts
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+
+# 本机镜像源配置（含内网地址，不入库）
+.npmrc
