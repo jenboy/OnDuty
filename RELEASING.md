@@ -46,6 +46,12 @@
 
 如果以后想对齐 sales-report 的体验，可以加一个 **tag 触发的工作流**：构建 `dist/`、打成 zip、通过 Gitea API 附到对应 Release 上（需要 `RELEASE_TOKEN` 之类的仓库密钥）。目前没做。
 
+## 回滚
+
+- **代码回滚**：`git revert <sha>`（保留历史，推荐）或检出上一个 tag 重新构建部署
+- **数据回滚**：数据都存在**用户浏览器的 IndexedDB** 里，发布本身不碰服务端数据。但如果某次发布改了本地数据结构，一定要在 Release 的「注意」里写清，并让用户先做「数据 → 导出备份」——浏览器里的旧数据一旦被新版本迁移，就只能靠备份或 `onduty-data.backup.*` 找回
+- **镜像回滚**：GitHub 侧是强制推送的镜像，回滚 Gitea 的 main 会在下一次同步时一并覆盖 GitHub
+
 ## CI 何时会跑（与发布相关）
 
 - 推送 `main`：**只在这些路径变更时**才跑 —— `src/**`、`package.json`、`package-lock.json`、`next.config.js`、`postcss.config.mjs`、`tsconfig.json`、`eslint.config.mjs`、`vitest.config.mts`、`.gitea/workflows/**`、`wrangler.toml`、`vercel.json`
