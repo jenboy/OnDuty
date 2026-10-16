@@ -59,7 +59,9 @@ export function CalendarGrid({ year, month0, entries, personLookup, onSelectDay,
                 >
                   {day}
                 </span>
-                <span className={cn('truncate text-[11px]', info?.jieQi ? 'text-green-600' : 'text-gray-400')}>
+                <span
+                  className={cn('min-w-0 truncate text-[11px]', info?.jieQi ? 'text-green-600' : 'text-gray-400')}
+                >
                   {info?.label}
                 </span>
               </div>
@@ -84,7 +86,10 @@ export function CalendarGrid({ year, month0, entries, personLookup, onSelectDay,
           );
 
           const base =
-            'flex aspect-square flex-col rounded-lg border p-1.5 text-left transition-colors ' +
+            // min-w-0 很关键：grid 子项默认 min-width:auto，格子里的 truncate（nowrap）会把列的最小宽度
+            // 顶到「姓名整串文字的宽度」，整张网格因此宽于容器 —— 页面上只溢出几像素看不出，
+            // 但导出图片时（额外加了内边距）就会把最右一列切掉。加上 min-w-0 后列可以收缩、由 truncate 负责省略。
+            'flex aspect-square min-w-0 flex-col rounded-lg border p-1.5 text-left transition-colors ' +
             (isToday
               ? 'border-blue-500 bg-blue-50'
               : isWeekend

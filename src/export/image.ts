@@ -3,17 +3,17 @@
 /**
  * 图片导出：html-to-image 对日历 DOM 截图。
  *
- * 两个坑都踩过：
- * 1. html-to-image 按「原节点的尺寸」开画布，再把你给的 style 应用到克隆节点。
- *    之前只给了 `padding: 16px`（没给 width/height），内边距把内容挤得比画布宽，
- *    导出图右侧被裁掉一列 —— 所以这里显式传 width/height 并声明 border-box；
- * 2. 旧实现用 html2canvas，在 Tailwind 4 的 oklch 颜色下会直接失败。
+ * 踩过的坑（两次）：
+ * 1. 旧实现用 html2canvas，在 Tailwind 4 的 oklch 颜色下直接失败 → 换 html-to-image；
+ * 2. 试图用 `options.style` 给导出图加内边距：html-to-image 先按 options.width/height
+ *    （缺省取原节点尺寸）定画布，再把 style 应用到克隆节点；克隆节点按 content-box 处理，
+ *    于是「width=678 + padding 16×2」把网格排到 694px，画布只到 678 —— 最右一列被切。
+ *    现在**完全不注入样式**：画布 = 节点自身的盒子，边距一律由 DOM 提供（见详情页的 p-3），
+ *    这样"节点里有的东西"一定能完整落到图上。
  */
 import { toPng } from 'html-to-image';
 import { downloadBlob } from '@/lib/download';
 import { exportFilename } from './shared';
-
-const PADDING = 16;
 
 export async function exportNodeToPng(node: HTMLElement, filenameBase: string, now: Date = new Date()): Promise<void> {
   const width = node.scrollWidth;
@@ -26,15 +26,6 @@ export async function exportNodeToPng(node: HTMLElement, filenameBase: string, n
     pixelRatio: 2,
     backgroundColor: '#ffffff',
     cacheBust: true,
-    style: {
-      // 显式盒模型 + 固定尺寸，保证内边距算在画布之内而不是把内容顶出去
-      boxSizing: 'border-box',
-      width: `${width}px`,
-      height: `${height}px`,
-      padding: `${PADDING}px`,
-      margin: '0',
-      background: '#ffffff',
-    },
   });
 
   const response = await fetch(dataUrl);

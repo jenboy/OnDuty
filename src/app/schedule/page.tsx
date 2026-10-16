@@ -107,7 +107,8 @@ function ScheduleDetail() {
             onChange={(year, month0) => setCursor({ year, month0 })}
             right={<span className="text-sm text-gray-400">绿色为二十四节气</span>}
           />
-          <div ref={calendarRef} className="bg-white">
+          {/* 导出图片时截取的就是这个节点：内边距写在 DOM 里，截图才不会把内容挤出画布 */}
+          <div ref={calendarRef} className="rounded-lg bg-white p-3">
             <CalendarGrid year={cursor.year} month0={cursor.month0} entries={entries} personLookup={personLookup} />
           </div>
           <CalendarLegend personIds={schedule.personIds} personLookup={personLookup} />
