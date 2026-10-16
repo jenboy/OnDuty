@@ -2,8 +2,9 @@
 
 一个功能强大、易用的值日排班系统，支持多种排班策略、农历显示和多格式导出。
 
-> **仓库来源**：本仓库迁自 GitHub [`jenboy/OnDuty`](https://github.com/jenboy/OnDuty)，现托管于自建 Gitea。当前非镜像仓库，上游更新需手动同步。
+> **仓库来源**：本仓库迁自 GitHub [`jenboy/OnDuty`](https://github.com/jenboy/OnDuty)，现以自建 Gitea为主仓，并向 GitHub 做**推送镜像**（每 24 小时同步 ref；Release 条目不会同步）。
 > **版本控制约定**：构建产物（`.next/`、`dist/`、`out/`）与依赖目录不入库。
+> **发布与版本管理**：见 [RELEASING.md](./RELEASING.md)（版本号规范、打 tag 与发布清单、CI 触发规则）。
 
 ## ✨ 核心特性
 

@@ -3,8 +3,27 @@ name: CI
 on:
   push:
     branches: [main]
+    # 只有会影响「构建或依赖图」的改动才跑 CI：源码 / 依赖清单 / 工具链配置 /
+    # 工作流自身 / 部署配置。改 README、LICENSE 这类文档不再触发（不参与构建）。
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'next.config.js'
+      - 'postcss.config.mjs'
+      - 'tsconfig.json'
+      - 'eslint.config.mjs'
+      - 'vitest.config.mts'
+      - '.gitea/workflows/**'
+      - 'wrangler.toml'
+      - 'vercel.json'
   pull_request:
   workflow_dispatch:
+
+# 连续推送时取消同一分支上还没跑完的旧运行，避免为过时提交排队烧 runner
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
