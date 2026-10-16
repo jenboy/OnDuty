@@ -11,13 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
+      # runner 镜像（docker.gitea.com/runner-images:ubuntu-latest）已自带 Node 24 + npm 11；
+      # 这里不再用 actions/setup-node —— 实测它会卡在下载 Node 发行包上（14 分钟无进展）。
+      - name: 环境信息
+        run: node -v && npm -v
 
       - name: 安装依赖
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
