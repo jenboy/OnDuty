@@ -41,6 +41,8 @@ interface AppStore extends AppData {
   setHydrated: (value: boolean) => void;
 
   addPerson: (input: NewPersonInput) => Person;
+  /** 批量新增（一次状态更新，供批量导入使用） */
+  addPersons: (inputs: NewPersonInput[]) => Person[];
   updatePerson: (id: string, patch: Partial<Omit<Person, 'id'>>) => void;
   setPersonActive: (id: string, active: boolean) => void;
   archivePerson: (id: string) => void;
@@ -69,22 +71,28 @@ export const useAppStore = create<AppStore>()(
       hydrated: false,
       setHydrated: (value) => set({ hydrated: value }),
 
-      addPerson: (input) => {
+      addPerson: (input) => get().addPersons([input])[0],
+
+      addPersons: (inputs) => {
         const persons = get().persons;
-        const person: Person = {
-          id: newId(),
-          name: input.name.trim(),
-          department: input.department?.trim() || undefined,
-          phone: input.phone?.trim() || undefined,
-          email: input.email?.trim() || undefined,
-          color: input.color,
-          isActive: input.isActive ?? true,
-          order: persons.length,
-          excludedDays: input.excludedDays ?? [],
-          archivedAt: null,
-        };
-        set({ persons: [...persons, person] });
-        return person;
+        let order = persons.length;
+        const created = inputs.map((input) => {
+          const person: Person = {
+            id: newId(),
+            name: input.name.trim(),
+            department: input.department?.trim() || undefined,
+            phone: input.phone?.trim() || undefined,
+            email: input.email?.trim() || undefined,
+            color: input.color,
+            isActive: input.isActive ?? true,
+            order: order++,
+            excludedDays: input.excludedDays ?? [],
+            archivedAt: null,
+          };
+          return person;
+        });
+        set({ persons: [...persons, ...created] });
+        return created;
       },
 
       updatePerson: (id, patch) =>

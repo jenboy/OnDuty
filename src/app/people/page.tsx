@@ -8,6 +8,7 @@ import {
   ArrowDown,
   ArrowUp,
   CalendarX,
+  FileUp,
   GripVertical,
   Pencil,
   Plus,
@@ -21,6 +22,7 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/Dialog';
 import { useToast } from '@/components/ui/Toast';
 import { PersonFormDialog, type PersonFormState } from '@/components/people/PersonFormDialog';
+import { BatchImportDialog } from '@/components/people/BatchImportDialog';
 import { cn } from '@/lib/cn';
 
 export default function PeoplePage() {
@@ -35,6 +37,7 @@ export default function PeoplePage() {
   const { push } = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<Person | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -99,16 +102,21 @@ export default function PeoplePage() {
             名单里的顺序就是「正序轮换」的顺序 —— 拖动或用箭头调整；把人归档不会影响历史排班表。
           </p>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        >
-          添加人员
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button icon={<FileUp className="h-4 w-4" />} onClick={() => setImportOpen(true)}>
+            批量导入
+          </Button>
+          <Button
+            variant="primary"
+            icon={<Plus className="h-4 w-4" />}
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            添加人员
+          </Button>
+        </div>
       </div>
 
       <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -264,6 +272,8 @@ export default function PeoplePage() {
           onSubmit={handleSubmit}
         />
       )}
+
+      {importOpen && <BatchImportDialog onClose={() => setImportOpen(false)} />}
 
       <ConfirmDialog
         open={pendingDelete !== null}
