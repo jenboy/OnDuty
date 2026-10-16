@@ -1,0 +1,153 @@
+name: Release
+
+# 发布约定见 RELEASING.md：v 前缀 + 附注 tag + 只对「发布」打标，不对每次提交打标。
+# 这个工作流只负责机器该做的事：校验 → 构建 → 打包 → 建 Release 并挂上产物。
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布的 tag（形如 v1.0.0），需已存在于本仓库'
+        required: true
+
+# 创建 Release 与上传附件需要写权限（Gitea：contents 覆盖 code 与 releases）
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      MODERNMIRROR_PORT: ${{ secrets.MODERNMIRROR_PORT }}
+      MODERNMIRROR_TOKEN: ${{ secrets.MODERNMIRROR_TOKEN }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: 环境信息
+        run: node -v && npm -v && echo "要发布的 tag：$RELEASE_TAG"
+
+      # 与 ci.yml 相同的镜像配置：容器访问不了宿主机局域网 IP，但能经 docker 网关访问
+      - name: 配置 npm 源
+        run: |
+          if [ -z "$MODERNMIRROR_TOKEN" ] || [ -z "$MODERNMIRROR_PORT" ]; then
+            echo "未配置镜像 Secret，使用 npm 默认源"
+            exit 0
+          fi
+          hex=$(awk '$2=="00000000"{print $3; exit}' /proc/net/route)
+          gateway="$((16#${hex:6:2})).$((16#${hex:4:2})).$((16#${hex:2:2})).$((16#${hex:0:2}))"
+          registry="http://$gateway:$MODERNMIRROR_PORT/proxy/npm/"
+          printf 'registry=%s\n//%s:_authToken=%s\n' "$registry" "${registry#*://}" "$MODERNMIRROR_TOKEN" >> "$HOME/.npmrc"
+          echo "npm 源已指向内网镜像：${registry#*://}"
+
+      - name: 安装依赖
+        run: npm ci --no-audit --no-fund
+
+      - name: 校验（lint / 类型 / 单测）
+        run: npm run lint && npm run typecheck && npm run test
+
+      - name: 版本号一致性（tag 必须与 package.json 一致）
+        run: |
+          pkg=$(node -p "require('./package.json').version")
+          if [ "${RELEASE_TAG#v}" != "$pkg" ]; then
+            echo "::error::tag ${RELEASE_TAG} 与 package.json 的 version ${pkg} 不一致；请先改 package.json 再打 tag"
+            exit 1
+          fi
+          echo "版本一致：${RELEASE_TAG} = ${pkg}"
+
+      - name: 构建（静态导出）
+        run: npm run build
+
+      - name: 检查构建产物
+        run: test -f dist/index.html && echo "dist/index.html 已生成"
+
+      - name: 打包 dist
+        run: |
+          version="${RELEASE_TAG#v}"
+          if command -v zip >/dev/null 2>&1; then
+            zip -qr "onduty-${version}.zip" dist
+            echo "ARTIFACT=onduty-${version}.zip" >> "$GITHUB_ENV"
+          else
+            tar -czf "onduty-${version}.tar.gz" dist
+            echo "ARTIFACT=onduty-${version}.tar.gz" >> "$GITHUB_ENV"
+          fi
+          ls -lh "$(grep '^ARTIFACT=' "$GITHUB_ENV" | cut -d= -f2)"
+
+      - name: 拉全 tag（用于算上一个发布以来的提交）
+        run: git fetch --tags --force --quiet origin || true
+
+      - name: 生成发布说明
+        run: |
+          prev=$(git describe --tags --abbrev=0 "${RELEASE_TAG}^" 2>/dev/null || true)
+          {
+            echo "## 要点"
+            git for-each-ref "refs/tags/${RELEASE_TAG}" --format='%(contents)' | sed '/^$/d'
+            echo
+            echo "## 变更明细"
+            if [ -n "$prev" ]; then
+              git log --no-merges --pretty='- %s (%h)' "${prev}..${RELEASE_TAG}"
+            else
+              git log --no-merges --pretty='- %s (%h)' | head -60
+            fi
+            echo
+            echo "## 产物"
+            echo "- \`${ARTIFACT}\`：静态站点，解压后即 \`dist/\` 内容，可直接丢给任意静态服务器"
+            echo "- 提交：\`${GITHUB_SHA}\`"
+          } > RELEASE_BODY.md
+          cat RELEASE_BODY.md
+
+      - name: 创建 Release 并上传产物
+        env:
+          TOKEN_A: ${{ secrets.GITEA_TOKEN }}
+          TOKEN_B: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          token="${TOKEN_A:-$TOKEN_B}"
+          if [ -z "$token" ]; then echo "::error::拿不到作业令牌"; exit 1; fi
+          auth="Authorization: token ${token}"
+          repo="${GITHUB_REPOSITORY}"
+
+          # API 地址：优先用 Gitea 给的外部地址，不通则退到 docker 网关 + 本机 3030
+          api="${GITHUB_SERVER_URL}"
+          if ! curl -sS -m 5 -o /dev/null "${api}/api/v1/version" 2>/dev/null; then
+            hex=$(awk '$2=="00000000"{print $3; exit}' /proc/net/route)
+            gw="$((16#${hex:6:2})).$((16#${hex:4:2})).$((16#${hex:2:2})).$((16#${hex:0:2}))"
+            api="http://${gw}:3030"
+            echo "外部地址不可达，改用 ${api}"
+          fi
+          echo "API: ${api}/api/v1/repos/${repo}"
+
+          # 同 tag 已有 Release 时先删掉，便于重跑
+          old=$(curl -sS -H "$auth" "${api}/api/v1/repos/${repo}/releases/tags/${RELEASE_TAG}" \
+                | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2 || true)
+          if [ -n "$old" ]; then
+            curl -sS -X DELETE -H "$auth" "${api}/api/v1/repos/${repo}/releases/${old}" -o /dev/null
+            echo "已删除旧 Release（id=${old}）"
+          fi
+
+          # 正文转义：优先 jq，其次 python3
+          if command -v jq >/dev/null 2>&1; then
+            body=$(jq -Rs . < RELEASE_BODY.md)
+          else
+            body=$(python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))' < RELEASE_BODY.md)
+          fi
+          case "${RELEASE_TAG#v}" in
+            *-*) pre=true ;;
+            *)   pre=false ;;
+          esac
+          payload=$(printf '{"tag_name":"%s","name":"%s","body":%s,"draft":false,"prerelease":%s}' \
+                    "$RELEASE_TAG" "$RELEASE_TAG" "$body" "$pre")
+          id=$(curl -sS -X POST -H "$auth" -H 'Content-Type: application/json' -d "$payload" \
+               "${api}/api/v1/repos/${repo}/releases" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+          if [ -z "$id" ]; then echo "::error::创建 Release 失败"; exit 1; fi
+          echo "已创建 Release id=${id}"
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "$auth" \
+                 -F "attachment=@${ARTIFACT}" \
+                 "${api}/api/v1/repos/${repo}/releases/${id}/assets?name=${ARTIFACT}")
+          echo "产物上传 HTTP ${code}"
+          test "$code" = "201" -o "$code" = "200"
